@@ -1,0 +1,23 @@
+{
+  "grammars": [
+    {
+      "name": "almide",
+      "camelcase": "Almide",
+      "scope": "source.almide",
+      "path": ".",
+      "file-types": ["almd"],
+      "injection-regex": "^almide$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "links": {
+      "repository": "https://github.com/almide/tree-sitter-almide"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "rust": true,
+    "node": true
+  }
+}

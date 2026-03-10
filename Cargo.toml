@@ -1,0 +1,20 @@
+[package]
+name = "tree-sitter-almide"
+version = "0.1.0"
+edition = "2021"
+description = "Tree-sitter grammar for the Almide programming language"
+license = "MIT"
+repository = "https://github.com/almide/tree-sitter-almide"
+keywords = ["tree-sitter", "parser", "almide"]
+
+[lib]
+path = "bindings/rust/lib.rs"
+
+[dependencies]
+tree-sitter-language = "0.1"
+
+[dev-dependencies]
+tree-sitter = "0.25"
+
+[build-dependencies]
+cc = "1"

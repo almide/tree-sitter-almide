@@ -1,0 +1,53 @@
+{
+  "name": "tree-sitter-almide",
+  "version": "0.1.0",
+  "description": "Tree-sitter grammar for the Almide programming language",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/almide/tree-sitter-almide.git"
+  },
+  "license": "MIT",
+  "main": "bindings/node",
+  "types": "bindings/node",
+  "keywords": [
+    "tree-sitter",
+    "parser",
+    "almide"
+  ],
+  "files": [
+    "grammar.js",
+    "binding.gyp",
+    "prebuilds/**",
+    "bindings/node/*",
+    "queries/*",
+    "src/**",
+    "*.wasm"
+  ],
+  "dependencies": {
+    "node-addon-api": "^8.3.0",
+    "node-gyp-build": "^4.8.4"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.25.0"
+  },
+  "peerDependencies": {
+    "tree-sitter": "^0.22.4"
+  },
+  "peerDependenciesMeta": {
+    "tree-sitter": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "build": "tree-sitter generate && node-gyp build",
+    "parse": "tree-sitter parse",
+    "test": "tree-sitter test"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.almide",
+      "file-types": ["almd"],
+      "injection-regex": "^almide$"
+    }
+  ]
+}
