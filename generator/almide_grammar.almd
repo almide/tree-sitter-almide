@@ -1,0 +1,639 @@
+// Almide grammar definition using the Rule DSL
+// Each function returns (rule_name, rule_definition)
+
+import rule
+
+// ─── Precedence constants ───
+fn prec_pipe() -> Int = 1
+fn prec_or() -> Int = 2
+fn prec_and() -> Int = 3
+fn prec_compare() -> Int = 4
+fn prec_add() -> Int = 5
+fn prec_multiply() -> Int = 6
+fn prec_unary() -> Int = 7
+fn prec_member() -> Int = 8
+fn prec_call() -> Int = 9
+
+// ─── Top-level ───
+
+fn source_file() -> (String, Rule) =
+  ("source_file", Seq([
+    Opt(Ref("module_declaration")),
+    Repeat(Ref("import_declaration")),
+    Repeat(Ref("_top_declaration"))
+  ]))
+
+fn module_declaration() -> (String, Rule) =
+  ("module_declaration", Seq([Str("module"), Ref("identifier")]))
+
+fn import_declaration() -> (String, Rule) =
+  ("import_declaration", Seq([
+    Str("import"),
+    Ref("import_path"),
+    Opt(Seq([Str("as"), Ref("identifier")]))
+  ]))
+
+fn import_path() -> (String, Rule) =
+  ("import_path", Seq([Ref("identifier"), Repeat(Seq([Str("."), Ref("identifier")]))]))
+
+fn top_declaration() -> (String, Rule) =
+  ("_top_declaration", Choice([
+    Ref("function_declaration"),
+    Ref("type_declaration"),
+    Ref("trait_declaration"),
+    Ref("impl_declaration"),
+    Ref("test_declaration")
+  ]))
+
+// ─── Functions ───
+
+fn function_declaration() -> (String, Rule) =
+  ("function_declaration", Seq([
+    Opt(Ref("visibility_modifier")),
+    Opt(Str("async")),
+    Opt(Str("effect")),
+    Str("fn"),
+    Ref("function_name"),
+    Opt(Ref("generic_params")),
+    Ref("parameter_list"),
+    Str("->"),
+    Ref("_type_expr"),
+    Str("="),
+    Ref("expression")
+  ]))
+
+fn visibility_modifier() -> (String, Rule) =
+  ("visibility_modifier", Choice([Str("pub"), Str("mod"), Str("local")]))
+
+fn function_name() -> (String, Rule) =
+  ("function_name", Choice([Ref("identifier"), Ref("predicate_identifier")]))
+
+fn predicate_identifier() -> (String, Rule) =
+  ("predicate_identifier", Regex("[a-z_][a-zA-Z0-9_]*\\\\?"))
+
+fn parameter_list() -> (String, Rule) =
+  ("parameter_list", Seq([Str("("), Opt(rule.comma_sep1(Ref("parameter"))), Str(")")]))
+
+fn parameter() -> (String, Rule) =
+  ("parameter", Seq([Ref("identifier"), Str(":"), Ref("_type_expr")]))
+
+// ─── Types ───
+
+fn type_declaration() -> (String, Rule) =
+  ("type_declaration", Seq([
+    Str("type"),
+    Ref("type_name"),
+    Opt(Ref("generic_params")),
+    Str("="),
+    Ref("_type_body")
+  ]))
+
+fn type_body() -> (String, Rule) =
+  ("_type_body", Seq([
+    Choice([Ref("record_type"), Ref("variant_type"), Ref("newtype"), Ref("_type_expr")]),
+    Opt(Ref("deriving_clause"))
+  ]))
+
+fn record_type() -> (String, Rule) =
+  ("record_type", Seq([Str("{"), Opt(rule.comma_sep1(Ref("field_type"))), Opt(Str(",")), Str("}")]))
+
+fn field_type() -> (String, Rule) =
+  ("field_type", Seq([Ref("identifier"), Str(":"), Ref("_type_expr")]))
+
+fn variant_type() -> (String, Rule) =
+  ("variant_type", Seq([Str("|"), Ref("variant_case"), Repeat(Seq([Str("|"), Ref("variant_case")]))]))
+
+fn variant_case() -> (String, Rule) =
+  ("variant_case", Seq([
+    Ref("type_name"),
+    Opt(Choice([
+      Seq([Str("("), rule.comma_sep1(Ref("_type_expr")), Str(")")]),
+      Seq([Str("{"), rule.comma_sep1(Ref("field_type")), Str("}")])
+    ]))
+  ]))
+
+fn newtype_rule() -> (String, Rule) =
+  ("newtype", Seq([Str("newtype"), Ref("_type_expr")]))
+
+fn deriving_clause() -> (String, Rule) =
+  ("deriving_clause", Seq([Str("deriving"), rule.comma_sep1(Ref("type_name"))]))
+
+fn generic_params() -> (String, Rule) =
+  ("generic_params", Seq([Str("["), rule.comma_sep1(Ref("type_param")), Str("]")]))
+
+fn type_param() -> (String, Rule) =
+  ("type_param", Seq([Ref("type_name"), Opt(Seq([Str(":"), Ref("trait_bound")]))]))
+
+fn trait_bound() -> (String, Rule) =
+  ("trait_bound", Seq([Ref("type_name"), Repeat(Seq([Str("+"), Ref("type_name")]))]))
+
+fn type_expr() -> (String, Rule) =
+  ("_type_expr", Choice([
+    Ref("type_name"),
+    Ref("generic_type"),
+    Ref("function_type"),
+    Ref("record_type"),
+    Ref("tuple_type"),
+    Ref("unit_type")
+  ]))
+
+fn generic_type() -> (String, Rule) =
+  ("generic_type", Seq([Ref("type_name"), Str("["), rule.comma_sep1(Ref("_type_expr")), Str("]")]))
+
+fn function_type() -> (String, Rule) =
+  ("function_type", Seq([Str("fn"), Str("("), Opt(rule.comma_sep1(Ref("_type_expr"))), Str(")"), Str("->"), Ref("_type_expr")]))
+
+fn tuple_type() -> (String, Rule) =
+  ("tuple_type", Seq([Str("("), Ref("_type_expr"), Str(","), rule.comma_sep1(Ref("_type_expr")), Str(")")]))
+
+fn unit_type() -> (String, Rule) =
+  ("unit_type", Seq([Str("("), Str(")")]))
+
+// ─── Traits & Impl ───
+
+fn trait_declaration() -> (String, Rule) =
+  ("trait_declaration", Seq([
+    Str("trait"),
+    Ref("type_name"),
+    Opt(Ref("generic_params")),
+    Str("{"),
+    Repeat(Ref("trait_method")),
+    Str("}")
+  ]))
+
+fn trait_method() -> (String, Rule) =
+  ("trait_method", Seq([
+    Opt(Str("effect")),
+    Str("fn"),
+    Ref("function_name"),
+    Opt(Ref("generic_params")),
+    Ref("parameter_list"),
+    Str("->"),
+    Ref("_type_expr")
+  ]))
+
+fn impl_declaration() -> (String, Rule) =
+  ("impl_declaration", Seq([
+    Str("impl"),
+    Ref("type_name"),
+    Opt(Ref("generic_params")),
+    Str("for"),
+    Ref("_type_expr"),
+    Str("{"),
+    Repeat(Ref("function_declaration")),
+    Str("}")
+  ]))
+
+// ─── Tests ───
+
+fn test_declaration() -> (String, Rule) =
+  ("test_declaration", Seq([Str("test"), Ref("string_literal"), Ref("block_expression")]))
+
+// ─── Statements ───
+
+fn statement() -> (String, Rule) =
+  ("_statement", Choice([
+    Ref("let_statement"),
+    Ref("var_statement"),
+    Ref("assignment_statement"),
+    Ref("expression_statement")
+  ]))
+
+fn let_statement() -> (String, Rule) =
+  ("let_statement", Choice([
+    Seq([Str("let"), Ref("identifier"), Opt(Seq([Str(":"), Ref("_type_expr")])), Str("="), Ref("expression")]),
+    Seq([Str("let"), Str("{"), rule.comma_sep1(Ref("identifier")), Str("}"), Str("="), Ref("expression")])
+  ]))
+
+fn var_statement() -> (String, Rule) =
+  ("var_statement", Seq([Str("var"), Ref("identifier"), Opt(Seq([Str(":"), Ref("_type_expr")])), Str("="), Ref("expression")]))
+
+fn assignment_statement() -> (String, Rule) =
+  ("assignment_statement", Seq([Ref("identifier"), Str("="), Ref("expression")]))
+
+fn expression_statement() -> (String, Rule) =
+  ("expression_statement", Ref("expression"))
+
+// ─── Expressions ───
+
+fn expression() -> (String, Rule) =
+  ("expression", Choice([
+    Ref("binary_expression"),
+    Ref("unary_expression"),
+    Ref("pipe_expression"),
+    Ref("primary_expression")
+  ]))
+
+fn primary_expression() -> (String, Rule) =
+  ("primary_expression", Choice([
+    Ref("integer_literal"),
+    Ref("float_literal"),
+    Ref("string_literal"),
+    Ref("heredoc_string"),
+    Ref("boolean_literal"),
+    Ref("unit_expression"),
+    Ref("identifier"),
+    Ref("predicate_identifier"),
+    Ref("type_name"),
+    Ref("list_expression"),
+    Ref("record_expression"),
+    Ref("tuple_expression"),
+    Ref("call_expression"),
+    Ref("member_expression"),
+    Ref("tuple_index_expression"),
+    Ref("if_expression"),
+    Ref("match_expression"),
+    Ref("block_expression"),
+    Ref("do_expression"),
+    Ref("for_in_expression"),
+    Ref("lambda_expression"),
+    Ref("try_expression"),
+    Ref("await_expression"),
+    Ref("range_expression"),
+    Ref("some_expression"),
+    Ref("none_expression"),
+    Ref("ok_expression"),
+    Ref("err_expression"),
+    Ref("hole_expression"),
+    Ref("todo_expression"),
+    Ref("parenthesized_expression")
+  ]))
+
+// ─── Literals ───
+
+fn integer_literal() -> (String, Rule) =
+  ("integer_literal", Regex("[0-9]+"))
+
+fn float_literal() -> (String, Rule) =
+  ("float_literal", Regex("[0-9]+\\\\.[0-9]+"))
+
+fn string_literal() -> (String, Rule) =
+  ("string_literal", Choice([
+    Seq([Str("\\\""), Repeat(Choice([Ref("escape_sequence"), Ref("string_interpolation"), Ref("string_content")])), Str("\\\"")]),
+    Ref("raw_string")
+  ]))
+
+fn string_content() -> (String, Rule) =
+  ("string_content", Regex("[^\"\\\\\\\\$]+|\\$"))
+
+fn raw_string() -> (String, Rule) =
+  ("raw_string", Token(Seq([Str("r\\\""), Regex("[^\"]*"), Str("\\\"")])))
+
+fn string_interpolation() -> (String, Rule) =
+  ("string_interpolation", Seq([Str("\${"), Ref("expression"), Str("}")]))
+
+fn heredoc_string() -> (String, Rule) =
+  ("heredoc_string", Token(Choice([
+    Seq([Str("\\\"\\\"\\\""), Regex("([^\"]|\"[^\"]|\"\"[^\"])*"), Str("\\\"\\\"\\\"")]),
+    Seq([Str("r\\\"\\\"\\\""), Regex("([^\"]|\"[^\"]|\"\"[^\"])*"), Str("\\\"\\\"\\\"")])
+  ])))
+
+fn escape_sequence() -> (String, Rule) =
+  ("escape_sequence", Regex("\\\\\\\\[nrt\\\\\\\\\"$]"))
+
+fn boolean_literal() -> (String, Rule) =
+  ("boolean_literal", Choice([Str("true"), Str("false")]))
+
+fn unit_expression() -> (String, Rule) =
+  ("unit_expression", Prec(1, Seq([Str("("), Str(")")])))
+
+// ─── Collections ───
+
+fn list_expression() -> (String, Rule) =
+  ("list_expression", Seq([Str("["), Opt(rule.comma_sep1(Ref("expression"))), Opt(Str(",")), Str("]")]))
+
+fn record_expression() -> (String, Rule) =
+  ("record_expression", Seq([
+    Str("{"),
+    Opt(Ref("spread_field")),
+    Opt(rule.comma_sep1(Ref("record_field"))),
+    Opt(Str(",")),
+    Str("}")
+  ]))
+
+fn record_field() -> (String, Rule) =
+  ("record_field", Seq([Ref("identifier"), Str(":"), Ref("expression")]))
+
+fn spread_field() -> (String, Rule) =
+  ("spread_field", Seq([Str("..."), Ref("expression"), Str(",")]))
+
+fn tuple_expression() -> (String, Rule) =
+  ("tuple_expression", Seq([Str("("), Ref("expression"), Str(","), rule.comma_sep1(Ref("expression")), Str(")")]))
+
+// ─── Calls & Access ───
+
+fn call_expression() -> (String, Rule) =
+  ("call_expression", PrecLeft(prec_call(), Seq([
+    Choice([Ref("identifier"), Ref("predicate_identifier"), Ref("type_name"), Ref("member_expression")]),
+    Ref("argument_list")
+  ])))
+
+fn argument_list() -> (String, Rule) =
+  ("argument_list", Seq([Str("("), Opt(rule.comma_sep1(Ref("argument"))), Str(")")]))
+
+fn argument() -> (String, Rule) =
+  ("argument", Choice([
+    Seq([Ref("identifier"), Str(":"), Ref("expression")]),
+    Ref("expression")
+  ]))
+
+fn member_expression() -> (String, Rule) =
+  ("member_expression", PrecLeft(prec_member(), Seq([
+    Choice([Ref("primary_expression")]),
+    Str("."),
+    Choice([Ref("identifier"), Ref("predicate_identifier")])
+  ])))
+
+fn tuple_index_expression() -> (String, Rule) =
+  ("tuple_index_expression", PrecLeft(prec_member(), Seq([Ref("primary_expression"), Str("."), Ref("integer_literal")])))
+
+// ─── Operators ───
+
+fn binary_expression() -> (String, Rule) = {
+  let ops = [
+    ("or", prec_or()),
+    ("and", prec_and()),
+    ("==", prec_compare()),
+    ("!=", prec_compare()),
+    ("<", prec_compare()),
+    (">", prec_compare()),
+    ("<=", prec_compare()),
+    (">=", prec_compare()),
+    ("+", prec_add()),
+    ("-", prec_add()),
+    ("++", prec_add()),
+    ("*", prec_multiply()),
+    ("/", prec_multiply()),
+    ("%", prec_multiply()),
+    ("^", prec_multiply())
+  ]
+  let rules = list.map(ops, fn(pair) => {
+    let (op, p) = pair
+    PrecLeft(p, Seq([
+      Field("left", Ref("expression")),
+      Field("operator", Str(op)),
+      Field("right", Ref("expression"))
+    ]))
+  })
+  ("binary_expression", Choice(rules))
+}
+
+fn unary_expression() -> (String, Rule) =
+  ("unary_expression", Prec(prec_unary(), Seq([
+    Field("operator", Choice([Str("not"), Str("-")])),
+    Field("operand", Ref("expression"))
+  ])))
+
+fn pipe_expression() -> (String, Rule) =
+  ("pipe_expression", PrecRight(prec_pipe(), Seq([
+    Field("left", Ref("expression")),
+    Str("|>"),
+    Field("right", Ref("expression"))
+  ])))
+
+// ─── Control Flow ───
+
+fn if_expression() -> (String, Rule) =
+  ("if_expression", Seq([
+    Str("if"),
+    Field("condition", Ref("expression")),
+    Str("then"),
+    Field("consequence", Ref("expression")),
+    Str("else"),
+    Field("alternative", Ref("expression"))
+  ]))
+
+fn match_expression() -> (String, Rule) =
+  ("match_expression", Seq([
+    Str("match"),
+    Field("value", Ref("expression")),
+    Str("{"),
+    rule.comma_sep1(Ref("match_arm")),
+    Opt(Str(",")),
+    Str("}")
+  ]))
+
+fn match_arm() -> (String, Rule) =
+  ("match_arm", Seq([
+    Field("pattern", Ref("pattern")),
+    Opt(Seq([Str("if"), Field("guard", Ref("expression"))])),
+    Str("=>"),
+    Field("body", Ref("expression"))
+  ]))
+
+fn block_expression() -> (String, Rule) =
+  ("block_expression", Seq([Str("{"), Repeat(Ref("_statement")), Opt(Ref("expression")), Str("}")]))
+
+fn do_expression() -> (String, Rule) =
+  ("do_expression", Seq([Str("do"), Ref("block_expression")]))
+
+fn for_in_expression() -> (String, Rule) =
+  ("for_in_expression", Seq([Str("for"), Ref("identifier"), Str("in"), Ref("expression"), Ref("block_expression")]))
+
+fn guard_expression() -> (String, Rule) =
+  ("guard_expression", Seq([Str("guard"), Ref("expression"), Str("else"), Ref("expression")]))
+
+// ─── Lambdas ───
+
+fn lambda_expression() -> (String, Rule) =
+  ("lambda_expression", Seq([Str("fn"), Str("("), Opt(rule.comma_sep1(Ref("lambda_param"))), Str(")"), Str("=>"), Ref("expression")]))
+
+fn lambda_param() -> (String, Rule) =
+  ("lambda_param", Choice([
+    Seq([Ref("identifier"), Str(":"), Ref("_type_expr")]),
+    Ref("identifier")
+  ]))
+
+// ─── Result/Option constructors ───
+
+fn some_expression() -> (String, Rule) =
+  ("some_expression", Seq([Str("some"), Str("("), Ref("expression"), Str(")")]))
+
+fn none_expression() -> (String, Rule) =
+  ("none_expression", Str("none"))
+
+fn ok_expression() -> (String, Rule) =
+  ("ok_expression", Seq([Str("ok"), Str("("), Ref("expression"), Str(")")]))
+
+fn err_expression() -> (String, Rule) =
+  ("err_expression", Seq([Str("err"), Str("("), Ref("expression"), Str(")")]))
+
+// ─── Special expressions ───
+
+fn try_expression() -> (String, Rule) =
+  ("try_expression", Seq([Str("try"), Ref("expression")]))
+
+fn await_expression() -> (String, Rule) =
+  ("await_expression", Seq([Str("await"), Ref("expression")]))
+
+fn hole_expression() -> (String, Rule) =
+  ("hole_expression", Str("_"))
+
+fn todo_expression() -> (String, Rule) =
+  ("todo_expression", Seq([Str("todo"), Str("("), Opt(Ref("string_literal")), Str(")")]))
+
+fn range_expression() -> (String, Rule) =
+  ("range_expression", PrecLeft(0, Seq([Ref("primary_expression"), Choice([Str(".."), Str("..=")]), Ref("primary_expression")])))
+
+fn parenthesized_expression() -> (String, Rule) =
+  ("parenthesized_expression", Seq([Str("("), Ref("expression"), Str(")")]))
+
+// ─── Patterns ───
+
+fn pattern() -> (String, Rule) =
+  ("pattern", Choice([
+    Ref("wildcard_pattern"),
+    Ref("literal_pattern"),
+    Ref("identifier_pattern"),
+    Ref("some_pattern"),
+    Ref("none_pattern"),
+    Ref("ok_pattern"),
+    Ref("err_pattern"),
+    Ref("constructor_pattern"),
+    Ref("record_pattern"),
+    Ref("tuple_pattern")
+  ]))
+
+fn wildcard_pattern() -> (String, Rule) =
+  ("wildcard_pattern", Str("_"))
+
+fn identifier_pattern() -> (String, Rule) =
+  ("identifier_pattern", Ref("identifier"))
+
+fn literal_pattern() -> (String, Rule) =
+  ("literal_pattern", Choice([Ref("integer_literal"), Ref("float_literal"), Ref("string_literal"), Ref("boolean_literal")]))
+
+fn some_pattern() -> (String, Rule) =
+  ("some_pattern", Seq([Str("some"), Str("("), Ref("pattern"), Str(")")]))
+
+fn none_pattern() -> (String, Rule) =
+  ("none_pattern", Str("none"))
+
+fn ok_pattern() -> (String, Rule) =
+  ("ok_pattern", Seq([Str("ok"), Str("("), Ref("pattern"), Str(")")]))
+
+fn err_pattern() -> (String, Rule) =
+  ("err_pattern", Seq([Str("err"), Str("("), Ref("pattern"), Str(")")]))
+
+fn constructor_pattern() -> (String, Rule) =
+  ("constructor_pattern", Seq([Ref("type_name"), Str("("), Opt(rule.comma_sep1(Ref("pattern"))), Str(")")]))
+
+fn record_pattern() -> (String, Rule) =
+  ("record_pattern", Seq([Str("{"), rule.comma_sep1(Ref("identifier")), Str("}")]))
+
+fn tuple_pattern() -> (String, Rule) =
+  ("tuple_pattern", Seq([Str("("), Ref("pattern"), Str(","), rule.comma_sep1(Ref("pattern")), Str(")")]))
+
+// ─── Comments & Identifiers ───
+
+fn line_comment() -> (String, Rule) =
+  ("line_comment", Regex("\\/\\/[^\\n]*"))
+
+fn block_comment() -> (String, Rule) =
+  ("block_comment", Token(Seq([Str("(*"), Regex("([^*]|\\*[^)])*"), Str("*)")])))
+
+fn identifier_rule() -> (String, Rule) =
+  ("identifier", Regex("[a-z_][a-zA-Z0-9_]*"))
+
+fn type_name() -> (String, Rule) =
+  ("type_name", Regex("[A-Z][a-zA-Z0-9]*"))
+
+// ─── All rules ───
+
+pub fn all_rules() -> List[(String, Rule)] = [
+  source_file(),
+  module_declaration(),
+  import_declaration(),
+  import_path(),
+  top_declaration(),
+  function_declaration(),
+  visibility_modifier(),
+  function_name(),
+  predicate_identifier(),
+  parameter_list(),
+  parameter(),
+  type_declaration(),
+  type_body(),
+  record_type(),
+  field_type(),
+  variant_type(),
+  variant_case(),
+  newtype_rule(),
+  deriving_clause(),
+  generic_params(),
+  type_param(),
+  trait_bound(),
+  type_expr(),
+  generic_type(),
+  function_type(),
+  tuple_type(),
+  unit_type(),
+  trait_declaration(),
+  trait_method(),
+  impl_declaration(),
+  test_declaration(),
+  statement(),
+  let_statement(),
+  var_statement(),
+  assignment_statement(),
+  expression_statement(),
+  expression(),
+  primary_expression(),
+  integer_literal(),
+  float_literal(),
+  string_literal(),
+  string_content(),
+  raw_string(),
+  string_interpolation(),
+  heredoc_string(),
+  escape_sequence(),
+  boolean_literal(),
+  unit_expression(),
+  list_expression(),
+  record_expression(),
+  record_field(),
+  spread_field(),
+  tuple_expression(),
+  call_expression(),
+  argument_list(),
+  argument(),
+  member_expression(),
+  tuple_index_expression(),
+  binary_expression(),
+  unary_expression(),
+  pipe_expression(),
+  if_expression(),
+  match_expression(),
+  match_arm(),
+  block_expression(),
+  do_expression(),
+  for_in_expression(),
+  guard_expression(),
+  lambda_expression(),
+  lambda_param(),
+  some_expression(),
+  none_expression(),
+  ok_expression(),
+  err_expression(),
+  try_expression(),
+  await_expression(),
+  hole_expression(),
+  todo_expression(),
+  range_expression(),
+  parenthesized_expression(),
+  pattern(),
+  wildcard_pattern(),
+  identifier_pattern(),
+  literal_pattern(),
+  some_pattern(),
+  none_pattern(),
+  ok_pattern(),
+  err_pattern(),
+  constructor_pattern(),
+  record_pattern(),
+  tuple_pattern(),
+  line_comment(),
+  block_comment(),
+  identifier_rule(),
+  type_name()
+]

@@ -1,0 +1,40 @@
+// Tree-sitter grammar rule DSL
+// Each variant maps to a tree-sitter grammar function
+
+type Rule =
+  | Seq(List[Rule])
+  | Choice(List[Rule])
+  | Repeat(Rule)
+  | Repeat1(Rule)
+  | Opt(Rule)
+  | Str(String)
+  | Ref(String)
+  | Field(String, Rule)
+  | PrecLeft(Int, Rule)
+  | PrecRight(Int, Rule)
+  | Prec(Int, Rule)
+  | Token(Rule)
+  | Regex(String)
+
+fn emit(rule: Rule) -> String = match rule {
+  Seq(rules) => "seq(" ++ join(list.map(rules, fn(r) => emit(r))) ++ ")"
+  Choice(rules) => "choice(" ++ join(list.map(rules, fn(r) => emit(r))) ++ ")"
+  Repeat(r) => "repeat(" ++ emit(r) ++ ")"
+  Repeat1(r) => "repeat1(" ++ emit(r) ++ ")"
+  Opt(r) => "optional(" ++ emit(r) ++ ")"
+  Str(s) => "\"" ++ s ++ "\""
+  Ref(name) => "$." ++ name
+  Field(name, r) => "field(\"" ++ name ++ "\", " ++ emit(r) ++ ")"
+  PrecLeft(p, r) => "prec.left(" ++ int.to_string(p) ++ ", " ++ emit(r) ++ ")"
+  PrecRight(p, r) => "prec.right(" ++ int.to_string(p) ++ ", " ++ emit(r) ++ ")"
+  Prec(p, r) => "prec(" ++ int.to_string(p) ++ ", " ++ emit(r) ++ ")"
+  Token(r) => "token(" ++ emit(r) ++ ")"
+  Regex(pattern) => "/" ++ pattern ++ "/"
+}
+
+fn join(parts: List[String]) -> String =
+  string.join(parts, ", ")
+
+// Helper: comma-separated list pattern (like commaSep1 in tree-sitter)
+fn comma_sep1(rule: Rule) -> Rule =
+  Seq([rule, Repeat(Seq([Str(","), rule]))])
