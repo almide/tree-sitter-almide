@@ -209,4 +209,3 @@ module.exports = grammar({
     type_name: ($) => /[A-Z][a-zA-Z0-9]*/
   },
 });
-
