@@ -1,6 +1,50 @@
 # tree-sitter-almide
 
-[Tree-sitter](https://tree-sitter.github.io/) grammar for the [Almide](https://github.com/almide) programming language.
+[Tree-sitter](https://tree-sitter.github.io/) grammar for the [Almide](https://github.com/almide/almide) programming language.
+
+**The grammar is written in Almide itself.** The `generator/` directory contains pure Almide code that generates `grammar.js` — no hand-written JavaScript. This demonstrates Almide's mission: AI can produce an entire language ecosystem in Almide.
+
+## How it works
+
+```
+generator/*.almd  →  almide build  →  gen-grammar binary
+gen-grammar       →  execute       →  grammar.js
+grammar.js        →  tree-sitter generate  →  src/parser.c
+```
+
+The grammar rules are modeled as an algebraic data type:
+
+```almide
+type Rule =
+  | Seq(List[Rule])
+  | Choice(List[Rule])
+  | Repeat(Rule)
+  | Str(String)
+  | Ref(String)
+  | Field(String, Rule)
+  | PrecLeft(Int, Rule)
+  | ...
+
+fn emit(rule: Rule) -> String = match rule {
+  Seq(rules) => "seq(" ++ string.join(list.map(rules, emit), ", ") ++ ")"
+  Ref(name) => "$." ++ name
+  ...
+}
+```
+
+Each grammar rule is a function returning `(String, Rule)`:
+
+```almide
+fn if_expression() -> (String, Rule) =
+  ("if_expression", Seq([
+    Str("if"),
+    Field("condition", Ref("expression")),
+    Str("then"),
+    Field("consequence", Ref("expression")),
+    Str("else"),
+    Field("alternative", Ref("expression"))
+  ]))
+```
 
 ## Features
 
@@ -46,31 +90,31 @@ parser.setLanguage(Almide);
 const tree = parser.parse(source);
 ```
 
-## Example
-
-```almide
-module main
-
-import std.io
-
-effect fn main(args: List[String]) -> Result[Unit, IoError] = {
-  let name = "world"
-  println("Hello, ${name}!")
-  ok(())
-}
-```
-
 ## Development
 
+### Regenerate grammar from Almide source
+
 ```bash
-# Generate parser from grammar
-npx tree-sitter generate
+# Build the generator (requires almide compiler)
+cd generator
+almide build main.almd -o gen-grammar
 
-# Run Rust tests
+# Generate grammar.js
+./gen-grammar > ../grammar.js
+
+# Generate parser
+cd ..
+tree-sitter generate
+
+# Test
+tree-sitter parse example.almd
+```
+
+### Quick rebuild (without Almide)
+
+```bash
+tree-sitter generate
 cargo test
-
-# Parse a file
-npx tree-sitter parse example.almd
 ```
 
 ## License

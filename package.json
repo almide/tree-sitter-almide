@@ -1,6 +1,6 @@
 {
   "name": "tree-sitter-almide",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Tree-sitter grammar for the Almide programming language",
   "repository": {
     "type": "git",
