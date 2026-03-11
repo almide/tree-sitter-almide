@@ -244,7 +244,7 @@
     },
     "predicate_identifier": {
       "type": "PATTERN",
-      "value": "[a-z_][a-zA-Z0-9_]*\\?"
+      "value": "[a-z_][a-zA-Z0-9_]*\\\\?"
     },
     "parameter_list": {
       "type": "SEQ",
@@ -1401,7 +1401,7 @@
     },
     "float_literal": {
       "type": "PATTERN",
-      "value": "[0-9]+\\.[0-9]+"
+      "value": "[0-9]+\\\\.[0-9]+"
     },
     "string_literal": {
       "type": "CHOICE",
@@ -1447,7 +1447,7 @@
     },
     "string_content": {
       "type": "PATTERN",
-      "value": "[^\"\\\\$]+|\\$"
+      "value": "[^\"\\\\\\\\$]+|\\$"
     },
     "raw_string": {
       "type": "TOKEN",
@@ -1530,7 +1530,7 @@
     },
     "escape_sequence": {
       "type": "PATTERN",
-      "value": "\\\\[nrt\\\\\"$]"
+      "value": "\\\\\\\\[nrt\\\\\\\\\"$]"
     },
     "boolean_literal": {
       "type": "CHOICE",
