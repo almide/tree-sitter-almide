@@ -34,7 +34,7 @@ module.exports = grammar({
 
     function_name: ($) => choice($.identifier, $.predicate_identifier),
 
-    predicate_identifier: ($) => /[a-z_][a-zA-Z0-9_]*\\?/,
+    predicate_identifier: ($) => /[a-z_][a-zA-Z0-9_]*\?/,
 
     parameter_list: ($) => seq("(", optional(seq($.parameter, repeat(seq(",", $.parameter)))), ")"),
 
@@ -92,15 +92,15 @@ module.exports = grammar({
 
     expression: ($) => choice($.binary_expression, $.unary_expression, $.pipe_expression, $.primary_expression),
 
-    primary_expression: ($) => choice($.integer_literal, $.float_literal, $.string_literal, $.heredoc_string, $.boolean_literal, $.unit_expression, $.identifier, $.predicate_identifier, $.type_name, $.list_expression, $.record_expression, $.tuple_expression, $.call_expression, $.member_expression, $.tuple_index_expression, $.if_expression, $.match_expression, $.block_expression, $.do_expression, $.for_in_expression, $.lambda_expression, $.try_expression, $.await_expression, $.range_expression, $.some_expression, $.none_expression, $.ok_expression, $.err_expression, $.hole_expression, $.todo_expression, $.parenthesized_expression),
+    primary_expression: ($) => choice($.integer_literal, $.float_literal, $.string_literal, $.heredoc_string, $.boolean_literal, $.unit_expression, $.identifier, $.predicate_identifier, $.type_name, $.list_expression, $.map_expression, $.record_expression, $.tuple_expression, $.call_expression, $.member_expression, $.tuple_index_expression, $.index_expression, $.if_expression, $.match_expression, $.block_expression, $.do_expression, $.for_in_expression, $.lambda_expression, $.try_expression, $.await_expression, $.range_expression, $.some_expression, $.none_expression, $.ok_expression, $.err_expression, $.hole_expression, $.todo_expression, $.parenthesized_expression),
 
     integer_literal: ($) => /[0-9]+/,
 
-    float_literal: ($) => /[0-9]+\\.[0-9]+/,
+    float_literal: ($) => /[0-9]+\.[0-9]+/,
 
     string_literal: ($) => choice(seq("\"", repeat(choice($.escape_sequence, $.string_interpolation, $.string_content)), "\""), $.raw_string),
 
-    string_content: ($) => /[^"\\\\$]+|\$/,
+    string_content: ($) => /[^"\\$]+|\$/,
 
     raw_string: ($) => token(seq("r\"", /[^"]*/, "\"")),
 
@@ -108,13 +108,17 @@ module.exports = grammar({
 
     heredoc_string: ($) => token(choice(seq("\"\"\"", /([^"]|"[^"]|""[^"])*/, "\"\"\""), seq("r\"\"\"", /([^"]|"[^"]|""[^"])*/, "\"\"\""))),
 
-    escape_sequence: ($) => /\\\\[nrt\\\\"$]/,
+    escape_sequence: ($) => /\\[nrt\\"$]/,
 
     boolean_literal: ($) => choice("true", "false"),
 
     unit_expression: ($) => prec(1, seq("(", ")")),
 
     list_expression: ($) => seq("[", optional(seq($.expression, repeat(seq(",", $.expression)))), optional(","), "]"),
+
+    map_expression: ($) => choice(seq("[", ":", "]"), seq("[", seq($.map_entry, repeat(seq(",", $.map_entry))), optional(","), "]")),
+
+    map_entry: ($) => seq(field("key", $.expression), ":", field("value", $.expression)),
 
     record_expression: ($) => seq("{", optional($.spread_field), optional(seq($.record_field, repeat(seq(",", $.record_field)))), optional(","), "}"),
 
@@ -134,6 +138,8 @@ module.exports = grammar({
 
     tuple_index_expression: ($) => prec.left(8, seq($.primary_expression, ".", $.integer_literal)),
 
+    index_expression: ($) => prec.left(8, seq($.primary_expression, "[", $.expression, "]")),
+
     binary_expression: ($) => choice(prec.left(2, seq(field("left", $.expression), field("operator", "or"), field("right", $.expression))), prec.left(3, seq(field("left", $.expression), field("operator", "and"), field("right", $.expression))), prec.left(4, seq(field("left", $.expression), field("operator", "=="), field("right", $.expression))), prec.left(4, seq(field("left", $.expression), field("operator", "!="), field("right", $.expression))), prec.left(4, seq(field("left", $.expression), field("operator", "<"), field("right", $.expression))), prec.left(4, seq(field("left", $.expression), field("operator", ">"), field("right", $.expression))), prec.left(4, seq(field("left", $.expression), field("operator", "<="), field("right", $.expression))), prec.left(4, seq(field("left", $.expression), field("operator", ">="), field("right", $.expression))), prec.left(5, seq(field("left", $.expression), field("operator", "+"), field("right", $.expression))), prec.left(5, seq(field("left", $.expression), field("operator", "-"), field("right", $.expression))), prec.left(5, seq(field("left", $.expression), field("operator", "++"), field("right", $.expression))), prec.left(6, seq(field("left", $.expression), field("operator", "*"), field("right", $.expression))), prec.left(6, seq(field("left", $.expression), field("operator", "/"), field("right", $.expression))), prec.left(6, seq(field("left", $.expression), field("operator", "%"), field("right", $.expression))), prec.left(6, seq(field("left", $.expression), field("operator", "^"), field("right", $.expression)))),
 
     unary_expression: ($) => prec(7, seq(field("operator", choice("not", "-")), field("operand", $.expression))),
@@ -150,7 +156,7 @@ module.exports = grammar({
 
     do_expression: ($) => seq("do", $.block_expression),
 
-    for_in_expression: ($) => seq("for", $.identifier, "in", $.expression, $.block_expression),
+    for_in_expression: ($) => seq("for", choice($.identifier, seq("(", $.identifier, ",", $.identifier, ")")), "in", $.expression, $.block_expression),
 
     guard_expression: ($) => seq("guard", $.expression, "else", $.expression),
 
