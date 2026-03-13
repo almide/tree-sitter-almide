@@ -1,0 +1,145 @@
+================================================================================
+Function declaration
+================================================================================
+
+fn add(a: Int, b: Int) -> Int = a + b
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_name))
+      (parameter
+        (identifier)
+        (type_name)))
+    (type_name)
+    (expression
+      (binary_expression
+        left: (expression
+          (primary_expression
+            (identifier)))
+        right: (expression
+          (primary_expression
+            (identifier)))))))
+
+================================================================================
+Effect function declaration
+================================================================================
+
+effect fn read(path: String) -> Result[String, String] = todo()
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_name)))
+    (generic_type
+      (type_name)
+      (type_name)
+      (type_name))
+    (expression
+      (primary_expression
+        (todo_expression)))))
+
+================================================================================
+Type declaration with record
+================================================================================
+
+type Point = { x: Int, y: Int }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (type_declaration
+    (type_name)
+    (record_type
+      (field_def
+        (identifier)
+        (type_name))
+      (field_def
+        (identifier)
+        (type_name)))))
+
+================================================================================
+Type declaration with variants
+================================================================================
+
+type Shape =
+  | Circle(Float)
+  | Rect(Float, Float)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (type_declaration
+    (type_name)
+    (variant_type
+      (variant_case
+        (type_name)
+        (type_name))
+      (variant_case
+        (type_name)
+        (type_name)
+        (type_name)))))
+
+================================================================================
+Top-level let constant
+================================================================================
+
+let MAX_COUNT = 100
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (top_let_declaration
+    (type_name)
+    (expression
+      (primary_expression
+        (integer_literal)))))
+
+================================================================================
+Test declaration
+================================================================================
+
+test "basic" {
+  let x = 1
+  assert_eq(x, 1)
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (test_declaration
+    (string_literal
+      (string_content))
+    (block_expression
+      (let_statement
+        (identifier)
+        (expression
+          (primary_expression
+            (integer_literal))))
+      (expression_statement
+        (expression
+          (call_expression
+            (expression
+              (primary_expression
+                (identifier)))
+            (argument_list
+              (argument
+                (expression
+                  (primary_expression
+                    (identifier))))
+              (argument
+                (expression
+                  (primary_expression
+                    (integer_literal)))))))))))
