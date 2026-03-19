@@ -109,10 +109,6 @@
             "named": false
           },
           {
-            "type": "++",
-            "named": false
-          },
-          {
             "type": "-",
             "named": false
           },
@@ -392,6 +388,21 @@
         },
         {
           "type": "string_literal",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "fan_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "block_expression",
           "named": true
         }
       ]
@@ -1046,10 +1057,6 @@
             "named": false
           },
           {
-            "type": "++",
-            "named": false
-          },
-          {
             "type": "-",
             "named": false
           },
@@ -1165,10 +1172,6 @@
           },
           {
             "type": "+",
-            "named": false
-          },
-          {
-            "type": "++",
             "named": false
           },
           {
@@ -1290,10 +1293,6 @@
             "named": false
           },
           {
-            "type": "++",
-            "named": false
-          },
-          {
             "type": "-",
             "named": false
           },
@@ -1357,10 +1356,6 @@
           },
           {
             "type": "+",
-            "named": false
-          },
-          {
-            "type": "++",
             "named": false
           },
           {
@@ -1479,10 +1474,6 @@
           },
           {
             "type": "+",
-            "named": false
-          },
-          {
-            "type": "++",
             "named": false
           },
           {
@@ -1891,6 +1882,10 @@
           "named": true
         },
         {
+          "type": "fan_expression",
+          "named": true
+        },
+        {
           "type": "float_literal",
           "named": true
         },
@@ -1976,6 +1971,14 @@
         },
         {
           "type": "unit_expression",
+          "named": true
+        },
+        {
+          "type": "unsafe_expression",
+          "named": true
+        },
+        {
+          "type": "while_expression",
           "named": true
         }
       ]
@@ -2210,6 +2213,10 @@
         },
         {
           "type": "raw_string",
+          "named": true
+        },
+        {
+          "type": "single_quote_string",
           "named": true
         },
         {
@@ -2645,6 +2652,21 @@
     "fields": {}
   },
   {
+    "type": "unsafe_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "block_expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "var_statement",
     "named": true,
     "fields": {},
@@ -2785,6 +2807,32 @@
     "fields": {}
   },
   {
+    "type": "while_expression",
+    "named": true,
+    "fields": {
+      "condition": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "block_expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "wildcard_pattern",
     "named": true,
     "fields": {}
@@ -2819,10 +2867,6 @@
   },
   {
     "type": "+",
-    "named": false
-  },
-  {
-    "type": "++",
     "named": false
   },
   {
@@ -2971,6 +3015,10 @@
     "named": false
   },
   {
+    "type": "fan",
+    "named": false
+  },
+  {
     "type": "float_literal",
     "named": true
   },
@@ -3072,7 +3120,15 @@
     "named": true
   },
   {
+    "type": "single_quote_string",
+    "named": true
+  },
+  {
     "type": "some",
+    "named": false
+  },
+  {
+    "type": "strict",
     "named": false
   },
   {
@@ -3112,7 +3168,15 @@
     "named": true
   },
   {
+    "type": "unsafe",
+    "named": false
+  },
+  {
     "type": "var",
+    "named": false
+  },
+  {
+    "type": "while",
     "named": false
   },
   {
