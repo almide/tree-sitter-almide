@@ -366,7 +366,6 @@ module.exports = grammar({
         $.tuple_expression,
         $.if_expression,
         $.block_expression,
-        $.do_expression,
         $.for_in_expression,
         $.while_expression,
         $.fan_expression,
@@ -403,7 +402,7 @@ module.exports = grammar({
 
     single_quote_string: ($) => token(seq("'", /[^']*/, "'")),
 
-    string_content: ($) => /[^"\\$]+|\$/,
+    string_content: ($) => /[^"\$]+|\$/,
 
     raw_string: ($) => token(seq("r\"", /[^"]*/, "\"")),
 
@@ -417,7 +416,7 @@ module.exports = grammar({
         ),
       ),
 
-    escape_sequence: ($) => /\\[nrt\\"$]/,
+    escape_sequence: ($) => /\[nrt\"$]/,
 
     boolean_literal: ($) => choice("true", "false"),
 
@@ -568,7 +567,6 @@ module.exports = grammar({
         "}",
       ),
 
-    do_expression: ($) => seq("do", $.block_expression),
 
     for_in_expression: ($) =>
       seq(
@@ -821,7 +819,8 @@ module.exports = grammar({
 
     // ── Terminals ──
 
-    line_comment: ($) => /\/\/[^\n]*/,
+    line_comment: ($) => /\/\/[^
+]*/,
 
     block_comment: ($) => token(seq("(*", /([^*]|\*[^)])*/, "*)")),
 
