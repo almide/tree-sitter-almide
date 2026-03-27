@@ -110,7 +110,7 @@ module.exports = grammar({
 
     _type_body: ($) =>
       seq(
-        choice($.record_type, $.variant_type, $.newtype, $._type_expr),
+        choice($.record_type, $.variant_type, $._type_expr),
         optional($.deriving_clause),
       ),
 
@@ -164,8 +164,6 @@ module.exports = grammar({
           ),
         ),
       ),
-
-    newtype: ($) => seq("newtype", $._type_expr),
 
     deriving_clause: ($) =>
       seq("deriving", seq($.type_name, repeat(seq(",", $.type_name)))),
@@ -224,7 +222,7 @@ module.exports = grammar({
 
     trait_declaration: ($) =>
       seq(
-        "trait",
+        "protocol",
         $.type_name,
         optional($.generic_params),
         "{",
@@ -341,8 +339,12 @@ module.exports = grammar({
         $.pipe_expression,
         $.call_expression,
         $.member_expression,
+        $.optional_chain_expression,
         $.tuple_index_expression,
         $.index_expression,
+        $.unwrap_expression,
+        $.to_option_expression,
+        $.unwrap_or_expression,
         $.match_expression,
         $.variant_record_expression,
         $.range_expression,
@@ -370,8 +372,6 @@ module.exports = grammar({
         $.while_expression,
         $.fan_expression,
         $.lambda_expression,
-        $.try_expression,
-        $.await_expression,
         $.some_expression,
         $.none_expression,
         $.ok_expression,
@@ -524,17 +524,18 @@ module.exports = grammar({
         prec.left(4, seq(field("left", $._match_value), field("operator", ">="), field("right", $._match_value))),
         prec.left(6, seq(field("left", $._match_value), field("operator", "+"), field("right", $._match_value))),
         prec.left(6, seq(field("left", $._match_value), field("operator", "-"), field("right", $._match_value))),
+        prec.left(6, seq(field("left", $._match_value), field("operator", "++"), field("right", $._match_value))),
         prec.left(7, seq(field("left", $._match_value), field("operator", "*"), field("right", $._match_value))),
         prec.left(7, seq(field("left", $._match_value), field("operator", "/"), field("right", $._match_value))),
         prec.left(7, seq(field("left", $._match_value), field("operator", "%"), field("right", $._match_value))),
-        prec.left(7, seq(field("left", $._match_value), field("operator", "^"), field("right", $._match_value))),
+        prec.right(8, seq(field("left", $._match_value), field("operator", "^"), field("right", $._match_value))),
       ),
 
     _match_unary: ($) =>
-      prec(8, seq(field("operator", choice("not", "-")), field("operand", $._match_value))),
+      prec(9, seq(field("operator", choice("not", "-")), field("operand", $._match_value))),
 
     _match_pipe: ($) =>
-      prec.left(1, seq(field("left", $._match_value), "|>", field("right", $._match_value))),
+      prec.left(1, seq(field("left", $._match_value), choice("|>", ">>"), field("right", $._match_value))),
 
     _match_call: ($) =>
       prec.left(10, seq($._match_value, optional($.turbofish), $.argument_list)),
@@ -591,7 +592,6 @@ module.exports = grammar({
 
     lambda_expression: ($) =>
       prec.right(1, seq(
-        "fn",
         "(",
         optional(
           seq($.lambda_param, repeat(seq(",", $.lambda_param))),
@@ -662,15 +662,16 @@ module.exports = grammar({
         prec.left(4, seq(field("left", $.expression), field("operator", ">="), field("right", $.expression))),
         prec.left(6, seq(field("left", $.expression), field("operator", "+"), field("right", $.expression))),
         prec.left(6, seq(field("left", $.expression), field("operator", "-"), field("right", $.expression))),
+        prec.left(6, seq(field("left", $.expression), field("operator", "++"), field("right", $.expression))),
         prec.left(7, seq(field("left", $.expression), field("operator", "*"), field("right", $.expression))),
         prec.left(7, seq(field("left", $.expression), field("operator", "/"), field("right", $.expression))),
         prec.left(7, seq(field("left", $.expression), field("operator", "%"), field("right", $.expression))),
-        prec.left(7, seq(field("left", $.expression), field("operator", "^"), field("right", $.expression))),
+        prec.right(8, seq(field("left", $.expression), field("operator", "^"), field("right", $.expression))),
       ),
 
     unary_expression: ($) =>
       prec(
-        8,
+        9,
         seq(
           field("operator", choice("not", "-")),
           field("operand", $.expression),
@@ -682,10 +683,26 @@ module.exports = grammar({
         1,
         seq(
           field("left", $.expression),
-          "|>",
+          choice("|>", ">>"),
           field("right", $.expression),
         ),
       ),
+
+    // expr! — unwrap (error propagation in effect fn)
+    unwrap_expression: ($) =>
+      prec.left(10, seq($.expression, "!")),
+
+    // expr? — convert Result to Option
+    to_option_expression: ($) =>
+      prec.left(10, seq($.expression, token.immediate("?"))),
+
+    // expr ?? fallback — unwrap with default
+    unwrap_or_expression: ($) =>
+      prec.left(1, seq($.expression, "??", $.expression)),
+
+    // expr?.field — optional chaining
+    optional_chain_expression: ($) =>
+      prec.left(9, seq($.expression, "?.", choice($.identifier, $.predicate_identifier))),
 
     if_expression: ($) =>
       seq(
@@ -704,10 +721,6 @@ module.exports = grammar({
     ok_expression: ($) => seq("ok", "(", $.expression, ")"),
 
     err_expression: ($) => seq("err", "(", $.expression, ")"),
-
-    try_expression: ($) => prec(8, seq("try", $.expression)),
-
-    await_expression: ($) => prec(8, seq("await", $.expression)),
 
     hole_expression: ($) => "_",
 
