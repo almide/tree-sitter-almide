@@ -19,6 +19,8 @@ module.exports = grammar({
     [$._guard_else_body, $.err_expression],
     [$.generic_type, $.primary_expression],
     [$.expression, $._range_operand],
+    [$.lambda_param, $.primary_expression],
+    [$.unit_expression, $.lambda_expression],
   ],
 
   rules: {
@@ -403,7 +405,10 @@ module.exports = grammar({
         ),
       ),
 
-    escape_sequence: ($) => /\[nrt\"$]/,
+    // \n \t \r \\ \" \$ ; \xNN (2 hex digits); \u{...} (1-6 hex digits).
+    // A malformed numeric escape is left literal -- handled by falling
+    // through to string_content, since this rule simply won't match it.
+    escape_sequence: ($) => /\\([nrt"$\\]|x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]{1,6}\})/,
 
     boolean_literal: ($) => choice("true", "false"),
 
@@ -528,13 +533,13 @@ module.exports = grammar({
       prec.left(10, seq($._match_value, optional($.turbofish), $.argument_list)),
 
     _match_member: ($) =>
-      prec.left(9, seq($._match_value, ".", choice($.identifier, $.predicate_identifier))),
+      prec.left(10, seq($._match_value, ".", choice($.identifier, $.predicate_identifier))),
 
     _match_tuple_index: ($) =>
-      prec.left(9, seq($._match_value, ".", $.integer_literal)),
+      prec.left(10, seq($._match_value, ".", $.integer_literal)),
 
     _match_index: ($) =>
-      prec.left(9, seq($._match_value, "[", $.expression, "]")),
+      prec.left(10, seq($._match_value, "[", $.expression, "]")),
 
     _match_range: ($) =>
       prec.left(5, seq($._match_value, choice("..", "..="), $._match_value)),
@@ -616,9 +621,11 @@ module.exports = grammar({
       choice(seq($.identifier, ":", $.expression), $.expression),
 
     // member_expression: left-recursive via $.expression
+    // `. () [] ! ?? ?` bind tighter than unary `not -` (CHEATSHEET.md
+    // precedence table) -- same tier as call_expression, above unary(9).
     member_expression: ($) =>
       prec.left(
-        9,
+        10,
         seq(
           $.expression,
           ".",
@@ -628,12 +635,12 @@ module.exports = grammar({
 
     // tuple_index_expression: left-recursive via $.expression
     tuple_index_expression: ($) =>
-      prec.left(9, seq($.expression, ".", $.integer_literal)),
+      prec.left(10, seq($.expression, ".", $.integer_literal)),
 
     // index_expression: left-recursive via $.expression
     index_expression: ($) =>
       prec.left(
-        9,
+        10,
         seq($.expression, "[", $.expression, "]"),
       ),
 
@@ -689,7 +696,7 @@ module.exports = grammar({
 
     // expr?.field — optional chaining
     optional_chain_expression: ($) =>
-      prec.left(9, seq($.expression, "?.", choice($.identifier, $.predicate_identifier))),
+      prec.left(10, seq($.expression, "?.", choice($.identifier, $.predicate_identifier))),
 
     if_expression: ($) =>
       seq(

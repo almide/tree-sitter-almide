@@ -143,3 +143,25 @@ test "basic" {
                 (expression
                   (primary_expression
                     (integer_literal)))))))))))
+
+================================================================================
+Protocol declaration
+================================================================================
+
+protocol Showable {
+  fn show(a: Self) -> String
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (protocol_declaration
+    (type_name)
+    (protocol_method
+      (function_name
+        (identifier))
+      (parameter_list
+        (parameter
+          (identifier)
+          (type_name)))
+      (type_name))))
