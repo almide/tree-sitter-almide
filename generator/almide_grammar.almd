@@ -40,8 +40,7 @@ fn top_declaration() -> (String, Rule) =
   ("_top_declaration", Choice([
     Ref("function_declaration"),
     Ref("type_declaration"),
-    Ref("trait_declaration"),
-    Ref("impl_declaration"),
+    Ref("protocol_declaration"),
     Ref("test_declaration")
   ]))
 
@@ -122,10 +121,10 @@ fn generic_params() -> (String, Rule) =
   ("generic_params", Seq([Str("["), rule.comma_sep1(Ref("type_param")), Str("]")]))
 
 fn type_param() -> (String, Rule) =
-  ("type_param", Seq([Ref("type_name"), Opt(Seq([Str(":"), Ref("trait_bound")]))]))
+  ("type_param", Seq([Ref("type_name"), Opt(Seq([Str(":"), Ref("protocol_bound")]))]))
 
-fn trait_bound() -> (String, Rule) =
-  ("trait_bound", Seq([Ref("type_name"), Repeat(Seq([Str("+"), Ref("type_name")]))]))
+fn protocol_bound() -> (String, Rule) =
+  ("protocol_bound", Seq([Ref("type_name"), Repeat(Seq([Str("+"), Ref("type_name")]))]))
 
 fn type_expr() -> (String, Rule) =
   ("_type_expr", Choice([
@@ -149,20 +148,20 @@ fn tuple_type() -> (String, Rule) =
 fn unit_type() -> (String, Rule) =
   ("unit_type", Seq([Str("("), Str(")")]))
 
-// ─── Traits & Impl ───
+// ─── Protocols ───
 
-fn trait_declaration() -> (String, Rule) =
-  ("trait_declaration", Seq([
-    Str("trait"),
+fn protocol_declaration() -> (String, Rule) =
+  ("protocol_declaration", Seq([
+    Str("protocol"),
     Ref("type_name"),
     Opt(Ref("generic_params")),
     Str("{"),
-    Repeat(Ref("trait_method")),
+    Repeat(Ref("protocol_method")),
     Str("}")
   ]))
 
-fn trait_method() -> (String, Rule) =
-  ("trait_method", Seq([
+fn protocol_method() -> (String, Rule) =
+  ("protocol_method", Seq([
     Opt(Str("effect")),
     Str("fn"),
     Ref("function_name"),
@@ -170,18 +169,6 @@ fn trait_method() -> (String, Rule) =
     Ref("parameter_list"),
     Str("->"),
     Ref("_type_expr")
-  ]))
-
-fn impl_declaration() -> (String, Rule) =
-  ("impl_declaration", Seq([
-    Str("impl"),
-    Ref("type_name"),
-    Opt(Ref("generic_params")),
-    Str("for"),
-    Ref("_type_expr"),
-    Str("{"),
-    Repeat(Ref("function_declaration")),
-    Str("}")
   ]))
 
 // ─── Tests ───
@@ -562,15 +549,14 @@ pub fn all_rules() -> List[(String, Rule)] = [
   deriving_clause(),
   generic_params(),
   type_param(),
-  trait_bound(),
+  protocol_bound(),
   type_expr(),
   generic_type(),
   function_type(),
   tuple_type(),
   unit_type(),
-  trait_declaration(),
-  trait_method(),
-  impl_declaration(),
+  protocol_declaration(),
+  protocol_method(),
   test_declaration(),
   statement(),
   let_statement(),

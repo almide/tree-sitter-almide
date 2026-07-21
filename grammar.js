@@ -40,8 +40,7 @@ module.exports = grammar({
       choice(
         $.function_declaration,
         $.type_declaration,
-        $.trait_declaration,
-        $.impl_declaration,
+        $.protocol_declaration,
         $.test_declaration,
         $.top_let_declaration,
       ),
@@ -176,9 +175,9 @@ module.exports = grammar({
       ),
 
     type_param: ($) =>
-      seq($.type_name, optional(seq(":", $.trait_bound))),
+      seq($.type_name, optional(seq(":", $.protocol_bound))),
 
-    trait_bound: ($) =>
+    protocol_bound: ($) =>
       seq($.type_name, repeat(seq("+", $.type_name))),
 
     _type_expr: ($) =>
@@ -220,17 +219,17 @@ module.exports = grammar({
 
     unit_type: ($) => seq("(", ")"),
 
-    trait_declaration: ($) =>
+    protocol_declaration: ($) =>
       seq(
         "protocol",
         $.type_name,
         optional($.generic_params),
         "{",
-        repeat($.trait_method),
+        repeat($.protocol_method),
         "}",
       ),
 
-    trait_method: ($) =>
+    protocol_method: ($) =>
       seq(
         optional("effect"),
         "fn",
@@ -239,18 +238,6 @@ module.exports = grammar({
         $.parameter_list,
         "->",
         $._type_expr,
-      ),
-
-    impl_declaration: ($) =>
-      seq(
-        "impl",
-        $.type_name,
-        optional($.generic_params),
-        "for",
-        $._type_expr,
-        "{",
-        repeat($.function_declaration),
-        "}",
       ),
 
     test_declaration: ($) =>
@@ -832,8 +819,7 @@ module.exports = grammar({
 
     // ── Terminals ──
 
-    line_comment: ($) => /\/\/[^
-]*/,
+    line_comment: ($) => /\/\/[^\n]*/,
 
     block_comment: ($) => token(seq("(*", /([^*]|\*[^)])*/, "*)")),
 
