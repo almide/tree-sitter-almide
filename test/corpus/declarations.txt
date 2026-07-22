@@ -171,6 +171,28 @@ fn incr(mut x: Int) -> Int = x + 1
             (integer_literal)))))))
 
 ================================================================================
+Conventions clause and no-leading-pipe variant
+================================================================================
+
+type Color: Eq, Repr = Red | Green | Blue
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (type_declaration
+    (type_name)
+    (conventions_clause
+      (type_name)
+      (type_name))
+    (variant_type
+      (variant_case
+        (type_name))
+      (variant_case
+        (type_name))
+      (variant_case
+        (type_name)))))
+
+================================================================================
 Protocol declaration
 ================================================================================
 

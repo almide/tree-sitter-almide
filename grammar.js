@@ -21,6 +21,7 @@ module.exports = grammar({
     [$.expression, $._range_operand],
     [$.lambda_param, $.primary_expression],
     [$.unit_expression, $.lambda_expression],
+    [$.variant_case, $._type_expr],
   ],
 
   rules: {
@@ -105,15 +106,17 @@ module.exports = grammar({
         "type",
         $.type_name,
         optional($.generic_params),
+        optional($.conventions_clause),
         "=",
         $._type_body,
       ),
 
+    // `type Name: Eq, Repr = ...` — conventions/protocols the type satisfies.
+    conventions_clause: ($) =>
+      seq(":", $.type_name, repeat(seq(",", $.type_name))),
+
     _type_body: ($) =>
-      seq(
-        choice($.record_type, $.variant_type, $._type_expr),
-        optional($.deriving_clause),
-      ),
+      choice($.record_type, $.variant_type, $._type_expr),
 
     record_type: ($) =>
       seq(
@@ -143,8 +146,9 @@ module.exports = grammar({
         seq("[", "]"),
       ),
 
+    // Leading `|` is optional: `Case1 | Case2` and `| Case1 | Case2` both parse.
     variant_type: ($) =>
-      seq("|", $.variant_case, repeat(seq("|", $.variant_case))),
+      seq(optional("|"), $.variant_case, repeat(seq("|", $.variant_case))),
 
     variant_case: ($) =>
       seq(
@@ -165,9 +169,6 @@ module.exports = grammar({
           ),
         ),
       ),
-
-    deriving_clause: ($) =>
-      seq("deriving", seq($.type_name, repeat(seq(",", $.type_name)))),
 
     generic_params: ($) =>
       seq(

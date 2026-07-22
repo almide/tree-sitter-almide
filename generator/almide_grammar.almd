@@ -83,15 +83,17 @@ fn type_declaration() -> (String, Rule) =
     Str("type"),
     Ref("type_name"),
     Opt(Ref("generic_params")),
+    Opt(Ref("conventions_clause")),
     Str("="),
     Ref("_type_body")
   ]))
 
+// `type Name: Eq, Repr = ...` — conventions/protocols the type satisfies.
+fn conventions_clause() -> (String, Rule) =
+  ("conventions_clause", Seq([Str(":"), rule.comma_sep1(Ref("type_name"))]))
+
 fn type_body() -> (String, Rule) =
-  ("_type_body", Seq([
-    Choice([Ref("record_type"), Ref("variant_type"), Ref("newtype"), Ref("_type_expr")]),
-    Opt(Ref("deriving_clause"))
-  ]))
+  ("_type_body", Choice([Ref("record_type"), Ref("variant_type"), Ref("_type_expr")]))
 
 fn record_type() -> (String, Rule) =
   ("record_type", Seq([Str("{"), Opt(rule.comma_sep1(Ref("field_type"))), Opt(Str(",")), Str("}")]))
@@ -100,7 +102,7 @@ fn field_type() -> (String, Rule) =
   ("field_type", Seq([Ref("identifier"), Str(":"), Ref("_type_expr")]))
 
 fn variant_type() -> (String, Rule) =
-  ("variant_type", Seq([Str("|"), Ref("variant_case"), Repeat(Seq([Str("|"), Ref("variant_case")]))]))
+  ("variant_type", Seq([Opt(Str("|")), Ref("variant_case"), Repeat(Seq([Str("|"), Ref("variant_case")]))]))
 
 fn variant_case() -> (String, Rule) =
   ("variant_case", Seq([
@@ -110,12 +112,6 @@ fn variant_case() -> (String, Rule) =
       Seq([Str("{"), rule.comma_sep1(Ref("field_type")), Str("}")])
     ]))
   ]))
-
-fn newtype_rule() -> (String, Rule) =
-  ("newtype", Seq([Str("newtype"), Ref("_type_expr")]))
-
-fn deriving_clause() -> (String, Rule) =
-  ("deriving_clause", Seq([Str("deriving"), rule.comma_sep1(Ref("type_name"))]))
 
 fn generic_params() -> (String, Rule) =
   ("generic_params", Seq([Str("["), rule.comma_sep1(Ref("type_param")), Str("]")]))
@@ -540,13 +536,12 @@ pub fn all_rules() -> List[(String, Rule)] = [
   parameter_list(),
   parameter(),
   type_declaration(),
+  conventions_clause(),
   type_body(),
   record_type(),
   field_type(),
   variant_type(),
   variant_case(),
-  newtype_rule(),
-  deriving_clause(),
   generic_params(),
   type_param(),
   protocol_bound(),

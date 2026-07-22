@@ -234,7 +234,7 @@
     }
   },
   {
-    "type": "deriving_clause",
+    "type": "conventions_clause",
     "named": true,
     "fields": {},
     "children": {
@@ -2490,7 +2490,7 @@
       "required": true,
       "types": [
         {
-          "type": "deriving_clause",
+          "type": "conventions_clause",
           "named": true
         },
         {
@@ -2985,10 +2985,6 @@
   },
   {
     "type": "continue",
-    "named": false
-  },
-  {
-    "type": "deriving",
     "named": false
   },
   {
