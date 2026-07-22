@@ -74,7 +74,7 @@ fn parameter_list() -> (String, Rule) =
   ("parameter_list", Seq([Str("("), Opt(rule.comma_sep1(Ref("parameter"))), Str(")")]))
 
 fn parameter() -> (String, Rule) =
-  ("parameter", Seq([Ref("identifier"), Str(":"), Ref("_type_expr")]))
+  ("parameter", Seq([Opt(Str("mut")), Ref("identifier"), Str(":"), Ref("_type_expr")]))
 
 // ─── Types ───
 

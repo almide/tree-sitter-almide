@@ -98,7 +98,7 @@ module.exports = grammar({
         ")",
       ),
 
-    parameter: ($) => seq($.identifier, ":", $._type_expr),
+    parameter: ($) => seq(optional("mut"), $.identifier, ":", $._type_expr),
 
     type_declaration: ($) =>
       seq(

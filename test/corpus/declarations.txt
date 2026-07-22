@@ -145,6 +145,32 @@ test "basic" {
                     (integer_literal)))))))))))
 
 ================================================================================
+Mutable parameter
+================================================================================
+
+fn incr(mut x: Int) -> Int = x + 1
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_name)))
+    (type_name)
+    (expression
+      (binary_expression
+        left: (expression
+          (primary_expression
+            (identifier)))
+        right: (expression
+          (primary_expression
+            (integer_literal)))))))
+
+================================================================================
 Protocol declaration
 ================================================================================
 
