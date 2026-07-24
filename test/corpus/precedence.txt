@@ -1,0 +1,505 @@
+================================================================================
+Pipe RHS is a single chain: operators after it apply to the pipe result
+================================================================================
+
+fn t() -> Int = {
+  let a = xs |> list.map(f) + ys
+  0
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (binary_expression
+                (expression
+                  (pipe_expression
+                    (expression
+                      (primary_expression
+                        (identifier)))
+                    (primary_expression
+                      (identifier))
+                    (identifier)
+                    (argument_list
+                      (argument
+                        (expression
+                          (primary_expression
+                            (identifier)))))))
+                (expression
+                  (primary_expression
+                    (identifier))))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (integer_literal)))))))))
+
+================================================================================
+Compose nests inside pipe RHS
+================================================================================
+
+fn t() -> Int = {
+  let b = xs |> f >> g
+  0
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (pipe_expression
+                (expression
+                  (primary_expression
+                    (identifier)))
+                (primary_expression
+                  (identifier))
+                (primary_expression
+                  (identifier)))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (integer_literal)))))))))
+
+================================================================================
+Comparison applies to the pipe result
+================================================================================
+
+fn t() -> Bool = {
+  let c = xs |> list.len > 5
+  c
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (binary_expression
+                (expression
+                  (pipe_expression
+                    (expression
+                      (primary_expression
+                        (identifier)))
+                    (primary_expression
+                      (identifier))
+                    (identifier)))
+                (expression
+                  (primary_expression
+                    (integer_literal))))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (identifier)))))))))
+
+================================================================================
+Coalesce fallback binds at unary level
+================================================================================
+
+fn t() -> Int = {
+  let d = x ?? 0 + 1
+  d
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (binary_expression
+                (expression
+                  (unwrap_or_expression
+                    (expression
+                      (primary_expression
+                        (identifier)))
+                    (primary_expression
+                      (integer_literal))))
+                (expression
+                  (primary_expression
+                    (integer_literal))))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (identifier)))))))))
+
+================================================================================
+Additive completes before pipe on the left
+================================================================================
+
+fn t() -> Int = {
+  let e = a + b |> f
+  e
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (pipe_expression
+                (expression
+                  (binary_expression
+                    (expression
+                      (primary_expression
+                        (identifier)))
+                    (expression
+                      (primary_expression
+                        (identifier)))))
+                (primary_expression
+                  (identifier)))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (identifier)))))))))
+
+================================================================================
+Pipe into subjectless match
+================================================================================
+
+fn t(x: Int) -> Int = {
+  x |> match {
+    0 => 1,
+    _ => 2,
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_name)))
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (expression
+            (pipe_expression
+              (expression
+                (primary_expression
+                  (identifier)))
+              (pipe_match_expression
+                (match_arm
+                  (pattern
+                    (literal_pattern
+                      (integer_literal)))
+                  (expression
+                    (primary_expression
+                      (integer_literal))))
+                (match_arm
+                  (pattern
+                    (wildcard_pattern))
+                  (expression
+                    (primary_expression
+                      (integer_literal))))))))))))
+
+================================================================================
+If without else
+================================================================================
+
+fn t(c: Bool) -> Unit = {
+  if c then println("hi")
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_name)))
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (expression
+            (primary_expression
+              (if_expression
+                (expression
+                  (primary_expression
+                    (identifier)))
+                (expression
+                  (call_expression
+                    (expression
+                      (primary_expression
+                        (identifier)))
+                    (argument_list
+                      (argument
+                        (expression
+                          (primary_expression
+                            (string_literal
+                              (string_content))))))))))))))))
+
+================================================================================
+Convention method declaration
+================================================================================
+
+fn Point.norm(self) -> Float = 0.0
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (type_name)
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)))
+    (type_name)
+    (expression
+      (primary_expression
+        (float_literal)))))
+
+================================================================================
+Guard let
+================================================================================
+
+fn t(o: Int) -> Int = {
+  guard let v = find(o) else 0
+  v
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_name)))
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (guard_statement
+            (identifier)
+            (expression
+              (call_expression
+                (expression
+                  (primary_expression
+                    (identifier)))
+                (argument_list
+                  (argument
+                    (expression
+                      (primary_expression
+                        (identifier)))))))
+            (expression
+              (primary_expression
+                (integer_literal))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (identifier)))))))))
+
+================================================================================
+Selective import
+================================================================================
+
+import http.{ Server, get }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_declaration
+    (import_path
+      (identifier))
+    (type_name)
+    (identifier)))
+
+================================================================================
+List pattern and negative literal pattern
+================================================================================
+
+fn t(xs: Int) -> Int = {
+  match xs {
+    [1, 2] => 1,
+    -3 => 2,
+    _ => 0,
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_name)))
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (expression
+            (match_expression
+              (primary_expression
+                (identifier))
+              (match_arm
+                (pattern
+                  (list_pattern
+                    (pattern
+                      (literal_pattern
+                        (integer_literal)))
+                    (pattern
+                      (literal_pattern
+                        (integer_literal)))))
+                (expression
+                  (primary_expression
+                    (integer_literal))))
+              (match_arm
+                (pattern
+                  (literal_pattern
+                    (integer_literal)))
+                (expression
+                  (primary_expression
+                    (integer_literal))))
+              (match_arm
+                (pattern
+                  (wildcard_pattern))
+                (expression
+                  (primary_expression
+                    (integer_literal)))))))))))
+
+================================================================================
+Power is right-associative and ** is an alias
+================================================================================
+
+fn t() -> Int = {
+  let p = 2 ^ 3 ^ 2
+  let q = 2 ** 3
+  p + q
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (binary_expression
+                (expression
+                  (primary_expression
+                    (integer_literal)))
+                (expression
+                  (binary_expression
+                    (expression
+                      (primary_expression
+                        (integer_literal)))
+                    (expression
+                      (primary_expression
+                        (integer_literal))))))))
+          (let_statement
+            (identifier)
+            (expression
+              (binary_expression
+                (expression
+                  (primary_expression
+                    (integer_literal)))
+                (expression
+                  (primary_expression
+                    (integer_literal))))))
+          (expression_statement
+            (expression
+              (binary_expression
+                (expression
+                  (primary_expression
+                    (identifier)))
+                (expression
+                  (primary_expression
+                    (identifier)))))))))))
+
+================================================================================
+Default argument and strict declaration
+================================================================================
+
+strict total
+
+fn pad(s: String, width: Int = 8) -> String = s
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (strict_declaration
+    (identifier))
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_name))
+      (parameter
+        (identifier)
+        (type_name)
+        (expression
+          (primary_expression
+            (integer_literal)))))
+    (type_name)
+    (expression
+      (primary_expression
+        (identifier)))))

@@ -2,60 +2,44 @@
 
 [Tree-sitter](https://tree-sitter.github.io/) grammar for the [Almide](https://github.com/almide/almide) programming language.
 
-**The grammar is written in Almide itself.** The `generator/` directory contains pure Almide code that generates `grammar.js` — no hand-written JavaScript. This demonstrates Almide's mission: AI can produce an entire language ecosystem in Almide.
-
-## How it works
+`grammar.js` mirrors the compiler's parser (`crates/almide-syntax`), including
+its real operator-precedence table:
 
 ```
-generator/*.almd  →  almide build  →  gen-grammar binary
-gen-grammar       →  execute       →  grammar.js
-grammar.js        →  tree-sitter generate  →  src/parser.c
+or < and < comparison (non-assoc) < |> (asymmetric) < ranges
+   < + - < * / % < ^ (right) < >> < unary < postfix (() [] . ! ? ?. ??)
 ```
 
-The grammar rules are modeled as an algebraic data type:
-
-```almide
-type Rule =
-  | Seq(List[Rule])
-  | Choice(List[Rule])
-  | Repeat(Rule)
-  | Str(String)
-  | Ref(String)
-  | Field(String, Rule)
-  | PrecLeft(Int, Rule)
-  | ...
-
-fn emit(rule: Rule) -> String = match rule {
-  Seq(rules) => "seq(" ++ string.join(list.map(rules, emit), ", ") ++ ")"
-  Ref(name) => "$." ++ name
-  ...
-}
-```
-
-Each grammar rule is a function returning `(String, Rule)`:
-
-```almide
-fn if_expression() -> (String, Rule) =
-  ("if_expression", Seq([
-    Str("if"),
-    Field("condition", Ref("expression")),
-    Str("then"),
-    Field("consequence", Ref("expression")),
-    Str("else"),
-    Field("alternative", Ref("expression"))
-  ]))
-```
+`|>` is asymmetric — its right-hand side is a single call/compose chain, so
+`xs |> list.map(f) + ys` parses as `(xs |> list.map(f)) + ys`, exactly like the
+compiler (see `test/corpus/precedence.txt`). The executable truth upstream is
+`crates/almide-syntax/src/parser/test_expr_precedence.rs`.
 
 ## Features
 
-- Full syntax coverage: modules, imports, functions, types, traits, impls, tests
-- Effect system (`effect fn`, `async`)
-- Pattern matching with guards
-- Pipe operator (`|>`)
-- Generic types with `[]` syntax
-- String interpolation (`"Hello, ${name}"`)
-- Heredoc strings (`"""..."""`)
-- Result/Option constructors (`ok`, `err`, `some`, `none`)
+- Modules, imports (incl. selective `import mod.{ A, b }`), functions
+  (incl. convention methods `fn Type.method`, `mut` / default parameters),
+  types (records with field defaults, variants, conventions clause
+  `type Name: Eq, Repr`), protocols, tests, `strict`
+- Attributes: `@extern(...)`, `@intrinsic("...")`, `@name(args)`
+- Effect system (`effect fn`), `guard` / `guard let`, `fan`
+- Pattern matching with guards, list patterns, negative literals, record rest
+- Pipe (`|>`, incl. `x |> match { ... }`), compose (`>>`), postfix
+  `!` `?` `?.` `??`
+- Generic types with `[]` syntax; function types `fn(A) -> B` / `(A) -> B`
+- String interpolation, single-quote strings, heredocs, raw strings
+- Comments: `//` and `/* ... */`
+
+Keyword and precedence data mirrors
+[almide-grammar](https://github.com/almide/almide-grammar), the descriptive
+single source of truth for Almide syntax.
+
+> **Note**: an earlier iteration generated `grammar.js` from an Almide-written
+> generator (`generator/`). That generator bit-rotted against the modern
+> language (it used removed syntax like `++` and `fn(x) =>` lambdas) and fell
+> far behind the hand-maintained grammar, so it was removed; `grammar.js` is
+> the maintained source for now. Restoring an at-parity Almide generator is
+> tracked in the issues.
 
 ## File type
 
@@ -92,29 +76,9 @@ const tree = parser.parse(source);
 
 ## Development
 
-### Regenerate grammar from Almide source
-
 ```bash
-# Build the generator (requires almide compiler)
-cd generator
-almide build main.almd -o gen-grammar
-
-# Generate grammar.js
-./gen-grammar > ../grammar.js
-
-# Generate parser
-cd ..
-tree-sitter generate
-
-# Test
-tree-sitter parse example.almd
-```
-
-### Quick rebuild (without Almide)
-
-```bash
-tree-sitter generate
-cargo test
+tree-sitter generate   # grammar.js → src/parser.c
+tree-sitter test       # run test/corpus/
 ```
 
 ## License
