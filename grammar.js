@@ -661,7 +661,7 @@ module.exports = grammar({
       prec.left(PREC.postfix, seq($._match_value, "[", $.expression, "]")),
 
     _match_range: ($) =>
-      prec.left(PREC.range, seq($._match_value, choice("..", "..="), $._match_value)),
+      prec.left(PREC.range, seq($._match_value, choice("..<", "..."), $._match_value)),
 
     match_arm: ($) =>
       seq(
@@ -926,7 +926,7 @@ module.exports = grammar({
     range_expression: ($) =>
       prec.left(
         PREC.range,
-        seq($._range_operand, choice("..", "..="), $._range_operand),
+        seq($._range_operand, choice("..<", "..."), $._range_operand),
       ),
 
     // Range operands: expressions that can appear in range without ambiguity

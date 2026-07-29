@@ -3481,11 +3481,11 @@
             "members": [
               {
                 "type": "STRING",
-                "value": ".."
+                "value": "..<"
               },
               {
                 "type": "STRING",
-                "value": "..="
+                "value": "..."
               }
             ]
           },
@@ -5223,11 +5223,11 @@
             "members": [
               {
                 "type": "STRING",
-                "value": ".."
+                "value": "..<"
               },
               {
                 "type": "STRING",
-                "value": "..="
+                "value": "..."
               }
             ]
           },
