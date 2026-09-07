@@ -30,6 +30,15 @@ compiler (see `test/corpus/precedence.txt`). The executable truth upstream is
 - String interpolation, single-quote strings, heredocs, raw strings
 - Comments: `//` and `/* ... */`
 
+Queries in `queries/`:
+
+- `highlights.scm` — syntax highlighting
+- `tags.scm` — the symbol index repo-map tools build from
+  (`@definition.function` / `.type` / `.interface` / `.method` /
+  `.constant` / `.test`, and `@reference.call` / `.module`). Every
+  `@definition.*` spans the whole declaration; `@name` inside it is the
+  identifier the index is keyed by.
+
 Keyword and precedence data mirrors
 [almide-grammar](https://github.com/almide/almide-grammar), the descriptive
 single source of truth for Almide syntax.
