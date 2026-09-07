@@ -1,0 +1,217 @@
+================================================================================
+List pattern with bound rest
+================================================================================
+
+let r = match xs {
+  [h, ..t] => h,
+  [] => 0,
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (top_let_declaration
+    (identifier)
+    (expression
+      (match_expression
+        (primary_expression
+          (identifier))
+        (match_arm
+          (pattern
+            (list_pattern
+              (pattern
+                (identifier_pattern
+                  (identifier)))
+              (rest_pattern
+                (identifier))))
+          (expression
+            (primary_expression
+              (identifier))))
+        (match_arm
+          (pattern
+            (list_pattern))
+          (expression
+            (primary_expression
+              (integer_literal))))))))
+
+================================================================================
+List pattern with ignored rest
+================================================================================
+
+let r = match xs {
+  [a, b, ..] => a + b
+  _ => 0
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (top_let_declaration
+    (identifier)
+    (expression
+      (match_expression
+        (primary_expression
+          (identifier))
+        (match_arm
+          (pattern
+            (list_pattern
+              (pattern
+                (identifier_pattern
+                  (identifier)))
+              (pattern
+                (identifier_pattern
+                  (identifier)))
+              (rest_pattern)))
+          (expression
+            (binary_expression
+              (expression
+                (primary_expression
+                  (identifier)))
+              (expression
+                (primary_expression
+                  (identifier))))))
+        (match_arm
+          (pattern
+            (wildcard_pattern))
+          (expression
+            (primary_expression
+              (integer_literal))))))))
+
+================================================================================
+List pattern that is only a rest
+================================================================================
+
+let r = match xs {
+  [..all] => all
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (top_let_declaration
+    (identifier)
+    (expression
+      (match_expression
+        (primary_expression
+          (identifier))
+        (match_arm
+          (pattern
+            (list_pattern
+              (rest_pattern
+                (identifier))))
+          (expression
+            (primary_expression
+              (identifier))))))))
+
+================================================================================
+As-pattern over a constructor
+================================================================================
+
+let r = match s {
+  c @ Circle(r) => c
+  r @ Rect(_, _) => r
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (top_let_declaration
+    (identifier)
+    (expression
+      (match_expression
+        (primary_expression
+          (identifier))
+        (match_arm
+          (pattern
+            (as_pattern
+              (identifier)
+              (pattern
+                (constructor_pattern
+                  (type_name)
+                  (pattern
+                    (identifier_pattern
+                      (identifier)))))))
+          (expression
+            (primary_expression
+              (identifier))))
+        (match_arm
+          (pattern
+            (as_pattern
+              (identifier)
+              (pattern
+                (constructor_pattern
+                  (type_name)
+                  (pattern
+                    (wildcard_pattern))
+                  (pattern
+                    (wildcard_pattern))))))
+          (expression
+            (primary_expression
+              (identifier))))))))
+
+================================================================================
+As-pattern over a list with rest
+================================================================================
+
+let r = match xs {
+  all @ [a, ..t] => all
+  whole @ some(v) => whole
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (top_let_declaration
+    (identifier)
+    (expression
+      (match_expression
+        (primary_expression
+          (identifier))
+        (match_arm
+          (pattern
+            (as_pattern
+              (identifier)
+              (pattern
+                (list_pattern
+                  (pattern
+                    (identifier_pattern
+                      (identifier)))
+                  (rest_pattern
+                    (identifier))))))
+          (expression
+            (primary_expression
+              (identifier))))
+        (match_arm
+          (pattern
+            (as_pattern
+              (identifier)
+              (pattern
+                (some_pattern
+                  (pattern
+                    (identifier_pattern
+                      (identifier)))))))
+          (expression
+            (primary_expression
+              (identifier))))))))
+
+================================================================================
+Attribute still parses as an attribute
+================================================================================
+
+@intrinsic("x")
+fn f(a: Int) -> Int
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (attribute
+      (string_literal
+        (string_content)))
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_name)))
+    (type_name)))

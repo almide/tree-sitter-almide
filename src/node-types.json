@@ -34,6 +34,32 @@
     }
   },
   {
+    "type": "as_pattern",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "pattern": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "pattern",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "assignment_statement",
     "named": true,
     "fields": {
@@ -945,6 +971,10 @@
       "types": [
         {
           "type": "pattern",
+          "named": true
+        },
+        {
+          "type": "rest_pattern",
           "named": true
         }
       ]
@@ -1891,6 +1921,10 @@
       "required": true,
       "types": [
         {
+          "type": "as_pattern",
+          "named": true
+        },
+        {
           "type": "constructor_pattern",
           "named": true
         },
@@ -2359,6 +2393,22 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "rest_pattern",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -3202,6 +3252,10 @@
   },
   {
     "type": "??",
+    "named": false
+  },
+  {
+    "type": "@",
     "named": false
   },
   {

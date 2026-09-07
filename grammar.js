@@ -961,7 +961,18 @@ module.exports = grammar({
         $.variant_record_pattern,
         $.tuple_pattern,
         $.list_pattern,
+        $.as_pattern,
       ),
+
+    // all @ [a, ..t] / c @ Circle(r) — bind the whole value and destructure it.
+    // `@` here is the binder, distinct from the `@name` attribute token (which
+    // is only lexed in declaration position, never after a pattern identifier).
+    as_pattern: ($) =>
+      prec.right(2, seq(
+        field("name", $.identifier),
+        "@",
+        field("pattern", $.pattern),
+      )),
 
     wildcard_pattern: ($) => prec(1, "_"),
 
@@ -1028,13 +1039,24 @@ module.exports = grammar({
         ")",
       )),
 
-    // [1, 2, 3] — fixed-length list pattern (no rest element in Almide)
+    // [1, 2, 3] / [h, ..t] / [a, b, ..] / [..all] — the rest element is only
+    // valid in the last slot (the compiler rejects `[..t, x]`, so does the grammar).
     list_pattern: ($) =>
       prec(1, seq(
         "[",
-        optional(seq($.pattern, repeat(seq(",", $.pattern)))),
+        optional(choice(
+          seq(
+            $.pattern,
+            repeat(seq(",", $.pattern)),
+            optional(seq(",", $.rest_pattern)),
+          ),
+          $.rest_pattern,
+        )),
         "]",
       )),
+
+    // `..` (rest ignored) or `..name` (rest bound to a List)
+    rest_pattern: ($) => seq("..", optional(field("name", $.identifier))),
 
     // ── Terminals ──
 

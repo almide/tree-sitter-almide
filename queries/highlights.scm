@@ -79,6 +79,8 @@
 (let_statement (identifier) @variable)
 (var_statement (identifier) @variable)
 (identifier_pattern) @variable
+(rest_pattern name: (identifier) @variable)
+(as_pattern name: (identifier) @variable)
 
 ; ---------- keywords ----------
 
@@ -135,6 +137,8 @@
   "<"
   ">"
   "="
+  ".."
+  "@"
 ] @operator
 
 [
