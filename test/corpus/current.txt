@@ -1,0 +1,641 @@
+================================================================================
+Option type shorthand
+================================================================================
+
+fn find(xs: List[Int]) -> Int? = none
+type R = { a: Value? = none, b: (Int?)? }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (generic_type
+          (type_name)
+          (type_name))))
+    (option_type
+      (type_name))
+    (expression
+      (primary_expression
+        (none_expression))))
+  (type_declaration
+    (type_name)
+    (record_type
+      (field_def
+        (identifier)
+        (option_type
+          (type_name))
+        (expression
+          (primary_expression
+            (none_expression))))
+      (field_def
+        (identifier)
+        (option_type
+          (parenthesized_type
+            (option_type
+              (type_name))))))))
+
+================================================================================
+Module-qualified types
+================================================================================
+
+fn f(e: solve.Edit, u: pkg.sub.Usage) -> List[core.Finish] = []
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (qualified_type
+          (identifier)
+          (type_name)))
+      (parameter
+        (identifier)
+        (qualified_type
+          (identifier)
+          (identifier)
+          (type_name))))
+    (generic_type
+      (type_name)
+      (qualified_type
+        (identifier)
+        (type_name)))
+    (expression
+      (primary_expression
+        (list_expression)))))
+
+================================================================================
+Fallible return and effect fn types
+================================================================================
+
+effect fn run(f: effect (Int) -> String!) -> Int!AppError = 1
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (function_type
+          (type_name)
+          (type_name)
+          (fallible_marker))))
+    (type_name)
+    (fallible_marker
+      (type_name))
+    (expression
+      (primary_expression
+        (integer_literal)))))
+
+================================================================================
+Module-qualified record, case and constant
+================================================================================
+
+fn f() -> Int = {
+  let r = live.Request { model: m, messages: [] }
+  let c = core.FinishStop
+  let k = ask.MODEL_WORK
+  0
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (member_expression
+                (expression
+                  (primary_expression
+                    (identifier)))
+                (type_name))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (record_expression
+                  (record_field
+                    (identifier)
+                    (expression
+                      (primary_expression
+                        (identifier))))
+                  (record_field
+                    (identifier)
+                    (expression
+                      (primary_expression
+                        (list_expression))))))))
+          (let_statement
+            (identifier)
+            (expression
+              (member_expression
+                (expression
+                  (primary_expression
+                    (identifier)))
+                (type_name))))
+          (let_statement
+            (identifier)
+            (expression
+              (member_expression
+                (expression
+                  (primary_expression
+                    (identifier)))
+                (type_name))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (integer_literal)))))))))
+
+================================================================================
+Escaped quote and slashes inside a string
+================================================================================
+
+let S = "{\"ok\":true} https://example.com // not a comment \q"
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (top_let_declaration
+    (type_name)
+    (expression
+      (primary_expression
+        (string_literal
+          (string_content)
+          (escape_sequence)
+          (string_content)
+          (escape_sequence)
+          (string_content)
+          (string_content))))))
+
+================================================================================
+A list on the line after an expression
+================================================================================
+
+fn f() -> List[Int] = {
+  let a = if c then b else d
+  [1, 2]
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (generic_type
+      (type_name)
+      (type_name))
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (primary_expression
+                (if_expression
+                  (expression
+                    (primary_expression
+                      (identifier)))
+                  (expression
+                    (primary_expression
+                      (identifier)))
+                  (expression
+                    (primary_expression
+                      (identifier)))))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (list_expression
+                  (expression
+                    (primary_expression
+                      (integer_literal)))
+                  (expression
+                    (primary_expression
+                      (integer_literal))))))))))))
+
+================================================================================
+Match and for heads take postfix operators, not records
+================================================================================
+
+effect fn f() -> Unit = {
+  match load(x)! { ok(v) => v, err(e) => e }
+  match a? |> option.map((x) => x) { some(v) => v, none => 0 }
+  for m in MARKERS { go(m) }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (expression_statement
+            (expression
+              (match_expression
+                (primary_expression
+                  (identifier))
+                (argument_list
+                  (argument
+                    (expression
+                      (primary_expression
+                        (identifier)))))
+                (match_arm
+                  (pattern
+                    (ok_pattern
+                      (pattern
+                        (identifier_pattern
+                          (identifier)))))
+                  (expression
+                    (primary_expression
+                      (identifier))))
+                (match_arm
+                  (pattern
+                    (err_pattern
+                      (pattern
+                        (identifier_pattern
+                          (identifier)))))
+                  (expression
+                    (primary_expression
+                      (identifier)))))))
+          (expression_statement
+            (expression
+              (match_expression
+                (primary_expression
+                  (predicate_identifier))
+                (primary_expression
+                  (identifier))
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (primary_expression
+                        (lambda_expression
+                          (lambda_param
+                            (identifier))
+                          (expression
+                            (primary_expression
+                              (identifier))))))))
+                (match_arm
+                  (pattern
+                    (some_pattern
+                      (pattern
+                        (identifier_pattern
+                          (identifier)))))
+                  (expression
+                    (primary_expression
+                      (identifier))))
+                (match_arm
+                  (pattern
+                    (none_pattern))
+                  (expression
+                    (primary_expression
+                      (integer_literal)))))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (for_in_expression
+                  (identifier)
+                  (primary_expression
+                    (type_name))
+                  (block_expression
+                    (expression
+                      (call_expression
+                        (expression
+                          (primary_expression
+                            (identifier)))
+                        (argument_list
+                          (argument
+                            (expression
+                              (primary_expression
+                                (identifier)))))))))))))))))
+
+================================================================================
+Coalesce into a named record, spread into one
+================================================================================
+
+fn f(w: Window) -> Window = {
+  let r = list.get(xs, 0) ?? Rung { effort: "low" }
+  Window { ...w, start: 1 }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type_name)))
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (unwrap_or_expression
+                (expression
+                  (call_expression
+                    (expression
+                      (member_expression
+                        (expression
+                          (primary_expression
+                            (identifier)))
+                        (identifier)))
+                    (argument_list
+                      (argument
+                        (expression
+                          (primary_expression
+                            (identifier))))
+                      (argument
+                        (expression
+                          (primary_expression
+                            (integer_literal)))))))
+                (variant_record_expression
+                  (type_name)
+                  (record_field
+                    (identifier)
+                    (expression
+                      (primary_expression
+                        (string_literal
+                          (string_content)))))))))
+          (expression_statement
+            (expression
+              (variant_record_expression
+                (type_name)
+                (spread_field
+                  (expression
+                    (primary_expression
+                      (identifier))))
+                (record_field
+                  (identifier)
+                  (expression
+                    (primary_expression
+                      (integer_literal))))))))))))
+
+================================================================================
+Assignment in an if branch
+================================================================================
+
+fn f() -> Unit = {
+  var x = 0
+  if c then x = 1 else ()
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (var_statement
+            (identifier)
+            (expression
+              (primary_expression
+                (integer_literal))))
+          (assignment_statement
+            (expression
+              (primary_expression
+                (if_expression
+                  (expression
+                    (primary_expression
+                      (identifier)))
+                  (expression
+                    (primary_expression
+                      (identifier))))))
+            (expression
+              (primary_expression
+                (integer_literal))))
+          (expression_statement
+            (expression
+              (call_expression
+                (expression
+                  (primary_expression
+                    (identifier)))
+                (argument_list)))))))))
+
+================================================================================
+Fan heads
+================================================================================
+
+effect fn f() -> Unit = {
+  let a = fan { one(), two() }
+  let b = fan.any { one()
+    two() }
+  let c = fan.bounded(budget) { work() }
+  let d = fan.map(xs, (x) => x)
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list)
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (primary_expression
+                (fan_expression
+                  (fan_arms
+                    (expression
+                      (call_expression
+                        (expression
+                          (primary_expression
+                            (identifier)))
+                        (argument_list)))
+                    (expression
+                      (call_expression
+                        (expression
+                          (primary_expression
+                            (identifier)))
+                        (argument_list))))))))
+          (let_statement
+            (identifier)
+            (expression
+              (primary_expression
+                (fan_expression
+                  (fan_arms
+                    (block_expression
+                      (expression_statement
+                        (expression
+                          (call_expression
+                            (expression
+                              (primary_expression
+                                (identifier)))
+                            (argument_list))))
+                      (expression
+                        (call_expression
+                          (expression
+                            (primary_expression
+                              (identifier)))
+                          (argument_list)))))))))
+          (let_statement
+            (identifier)
+            (expression
+              (primary_expression
+                (fan_expression
+                  (argument_list
+                    (argument
+                      (expression
+                        (primary_expression
+                          (identifier)))))
+                  (block_expression
+                    (expression
+                      (call_expression
+                        (expression
+                          (primary_expression
+                            (identifier)))
+                        (argument_list))))))))
+          (let_statement
+            (identifier)
+            (expression
+              (call_expression
+                (expression
+                  (primary_expression
+                    (fan_member
+                      (identifier))))
+                (argument_list
+                  (argument
+                    (expression
+                      (primary_expression
+                        (identifier))))
+                  (argument
+                    (expression
+                      (primary_expression
+                        (lambda_expression
+                          (lambda_param
+                            (identifier))
+                          (expression
+                            (primary_expression
+                              (identifier))))))))))))))))
+
+================================================================================
+Trailing comma, ascription, tuple lambda parameter, named attribute
+================================================================================
+
+@deprecated(since=3, use="??")
+fn f(ps: List[(String, String)]) -> List[String] = {
+  let e = ([]: List[Int])
+  g(
+    a,
+    b,
+  )
+  ps |> list.map(((k, v)) => k + v)
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (attribute
+      (identifier)
+      (integer_literal)
+      (identifier)
+      (string_literal
+        (string_content)))
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (generic_type
+          (type_name)
+          (tuple_type
+            (type_name)
+            (type_name)))))
+    (generic_type
+      (type_name)
+      (type_name))
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (primary_expression
+                (ascription_expression
+                  (expression
+                    (primary_expression
+                      (list_expression)))
+                  (generic_type
+                    (type_name)
+                    (type_name))))))
+          (expression_statement
+            (expression
+              (call_expression
+                (expression
+                  (primary_expression
+                    (identifier)))
+                (argument_list
+                  (argument
+                    (expression
+                      (primary_expression
+                        (identifier))))
+                  (argument
+                    (expression
+                      (primary_expression
+                        (identifier))))))))
+          (expression_statement
+            (expression
+              (pipe_expression
+                (expression
+                  (primary_expression
+                    (identifier)))
+                (primary_expression
+                  (identifier))
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (primary_expression
+                        (lambda_expression
+                          (lambda_param
+                            (tuple_param
+                              (lambda_param
+                                (identifier))
+                              (lambda_param
+                                (identifier))))
+                          (expression
+                            (binary_expression
+                              (expression
+                                (primary_expression
+                                  (identifier)))
+                              (expression
+                                (primary_expression
+                                  (identifier))))))))))))))))))
