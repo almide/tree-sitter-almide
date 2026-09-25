@@ -26,7 +26,8 @@ compiler (see `test/corpus/precedence.txt`). The executable truth upstream is
 - Effect system (`effect fn`), `guard` / `guard let`, `fan { a, b }` and the
   `fan.settle` / `fan.any` / `fan.race(n)` / `fan.bounded(b)` /
   `fan.timeout(d)` heads
-- Pattern matching with guards, list patterns, negative literals, record rest
+- Pattern matching with guards, list patterns, negative literals, record rest,
+  module-qualified cases (`core.ErrConfig(m) =>`); `if let x = v { } else { }`
 - Pipe (`|>`, incl. `x |> match { ... }`), compose (`>>`), postfix
   `!` `?` `?.` `??`
 - Generic types with `[]` syntax; function types `fn(A) -> B` / `(A) -> B`,

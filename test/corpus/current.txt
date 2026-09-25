@@ -639,3 +639,80 @@ fn f(ps: List[(String, String)]) -> List[String] = {
                               (expression
                                 (primary_expression
                                   (identifier))))))))))))))))))
+
+================================================================================
+Module-qualified patterns and if let
+================================================================================
+
+fn f(e: core.LlmError, o: Int?) -> Int = {
+  let a = match e { core.ErrTimeout(_) => 1, core.ErrCancelled => 2, _ => 3 }
+  if let v = o { v } else { a }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (function_name
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (qualified_type
+          (identifier)
+          (type_name)))
+      (parameter
+        (identifier)
+        (option_type
+          (type_name))))
+    (type_name)
+    (expression
+      (primary_expression
+        (block_expression
+          (let_statement
+            (identifier)
+            (expression
+              (match_expression
+                (primary_expression
+                  (identifier))
+                (match_arm
+                  (pattern
+                    (constructor_pattern
+                      (qualified_type
+                        (identifier)
+                        (type_name))
+                      (pattern
+                        (wildcard_pattern))))
+                  (expression
+                    (primary_expression
+                      (integer_literal))))
+                (match_arm
+                  (pattern
+                    (type_name_pattern
+                      (qualified_type
+                        (identifier)
+                        (type_name))))
+                  (expression
+                    (primary_expression
+                      (integer_literal))))
+                (match_arm
+                  (pattern
+                    (wildcard_pattern))
+                  (expression
+                    (primary_expression
+                      (integer_literal)))))))
+          (expression_statement
+            (expression
+              (primary_expression
+                (if_let_expression
+                  (identifier)
+                  (primary_expression
+                    (identifier))
+                  (block_expression
+                    (expression
+                      (primary_expression
+                        (identifier))))
+                  (block_expression
+                    (expression
+                      (primary_expression
+                        (identifier)))))))))))))
