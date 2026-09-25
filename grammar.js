@@ -46,7 +46,6 @@ module.exports = grammar({
     [$._guard_else_body, $.err_expression],
     [$._guard_else_body, $.break_expression],
     [$._guard_else_body, $.continue_expression],
-    [$.generic_type, $.primary_expression],
     [$.expression, $._range_operand],
     [$.lambda_param, $.primary_expression],
     [$.lambda_param, $.hole_expression],
@@ -55,6 +54,7 @@ module.exports = grammar({
     [$.import_path],
     [$._pipe_rhs, $._coalesce_fallback],
     [$.tuple_type],
+    [$.qualified_type, $.primary_expression],
   ],
 
   rules: {
@@ -122,11 +122,15 @@ module.exports = grammar({
         optional(
           seq(
             "(",
-            optional(seq($._attribute_arg, repeat(seq(",", $._attribute_arg)))),
+            optional(seq($._attribute_item, repeat(seq(",", $._attribute_item)))),
             ")",
           ),
         ),
       ),
+
+    // Positional, or named: `@rewrite(name="...", from="...")`.
+    _attribute_item: ($) =>
+      choice($._attribute_arg, seq($.identifier, "=", $._attribute_arg)),
 
     _attribute_arg: ($) =>
       choice(
@@ -148,8 +152,14 @@ module.exports = grammar({
         $.parameter_list,
         "->",
         $._type_expr,
+        optional($.fallible_marker),
         optional(seq("=", $.expression)),
       ),
+
+    // ADR-0009 / ADR-0012: `-> T!` is Result[T, String], `-> T!E` is
+    // Result[T, E]; E is a named, possibly module-qualified, type.
+    fallible_marker: ($) =>
+      prec.right(seq("!", optional(choice($.type_name, $.qualified_type, $.generic_type)))),
 
     visibility_modifier: ($) => choice("pub", "mod", "local"),
 
@@ -213,7 +223,7 @@ module.exports = grammar({
         $.identifier,
         ":",
         $._type_expr,
-        optional(seq("=", $._field_default_value)),
+        optional(seq("=", $.expression)),
       ),
 
     // Default values allowed in field definitions
@@ -267,24 +277,44 @@ module.exports = grammar({
     _type_expr: ($) =>
       choice(
         $.type_name,
+        $.qualified_type,
         $.generic_type,
+        $.option_type,
         $.function_type,
         $.record_type,
         $.tuple_type,
         $.unit_type,
+        $.parenthesized_type,
       ),
+
+    // A type from another module: `core.Usage`, `pkg.sub.Type`.
+    qualified_type: ($) =>
+      seq($.identifier, repeat(seq(".", $.identifier)), ".", $.type_name),
+
+    // ADR-0010: `T?` is Option[T]. The `?` binds to the atom just before it
+    // and never crosses `->`: `(A) -> B?` returns Option[B].
+    option_type: ($) =>
+      prec(1, seq(
+        choice($.type_name, $.qualified_type, $.generic_type, $.tuple_type, $.unit_type, $.parenthesized_type),
+        "?",
+      )),
 
     generic_type: ($) =>
       seq(
-        $.type_name,
+        choice($.type_name, $.qualified_type),
         "[",
         seq($._type_expr, repeat(seq(",", $._type_expr))),
         "]",
       ),
 
-    // fn(A, B) -> C | Fn(A, B) -> C | (A, B) -> C
+    // fn(A, B) -> C | Fn(A, B) -> C | (A, B) -> C, each optionally prefixed
+    // with `effect` (#1055) and with a fallible return (`-> C!`).
     function_type: ($) =>
-      choice(
+      seq(optional("effect"), $._function_type_body),
+
+    // A trailing `!` belongs to the innermost fn type's return, as in the compiler.
+    _function_type_body: ($) =>
+      prec.right(choice(
         seq(
           choice("fn", "Fn"),
           "(",
@@ -292,6 +322,7 @@ module.exports = grammar({
           ")",
           "->",
           $._type_expr,
+          optional($.fallible_marker),
         ),
         seq(
           "(",
@@ -299,8 +330,9 @@ module.exports = grammar({
           ")",
           "->",
           $._type_expr,
+          optional($.fallible_marker),
         ),
-      ),
+      )),
 
     tuple_type: ($) =>
       seq(
@@ -312,6 +344,9 @@ module.exports = grammar({
       ),
 
     unit_type: ($) => seq("(", ")"),
+
+    // `(T?)?`, `((A) -> B)?`: parentheses group a type.
+    parenthesized_type: ($) => seq("(", $._type_expr, ")"),
 
     protocol_declaration: ($) =>
       seq(
@@ -465,6 +500,7 @@ module.exports = grammar({
         $.for_in_expression,
         $.while_expression,
         $.fan_expression,
+        $.fan_member,
         $.lambda_expression,
         $.some_expression,
         $.none_expression,
@@ -475,6 +511,7 @@ module.exports = grammar({
         $.break_expression,
         $.continue_expression,
         $.parenthesized_expression,
+        $.ascription_expression,
       ),
 
     // Decimal (with _ separators) and hex. No binary/octal in Almide.
@@ -497,7 +534,7 @@ module.exports = grammar({
           repeat(
             choice($.escape_sequence, $.string_interpolation, $.string_content),
           ),
-          "\"",
+          token.immediate("\""),
         ),
         $.single_quote_string,
         $.raw_string,
@@ -506,11 +543,17 @@ module.exports = grammar({
     // escapes only, no interpolation
     single_quote_string: ($) => token(seq("'", /([^'\\]|\\.)*/, "'")),
 
-    string_content: ($) => /[^"\$]+|\$/,
+    // A backslash always starts a two-character pair in the compiler's lexer,
+    // so it is never plain content: `\"` must not end the string. An escape the
+    // compiler does not know (`\q`) is still one pair; a malformed numeric one
+    // (`\xZZ`) falls back to a lone backslash.
+    // token.immediate + prec: inside the quotes nothing is skipped, so `//` in
+    // "https://..." is text, not the start of a comment.
+    string_content: ($) => token.immediate(prec(1, /[^"\\$]+|\$|\\[^nrt"$\\xu]|\\/)),
 
     raw_string: ($) => token(seq("r\"", /[^"]*/, "\"")),
 
-    string_interpolation: ($) => seq("${", $.expression, "}"),
+    string_interpolation: ($) => seq(token.immediate(prec(1, "${")), $.expression, "}"),
 
     heredoc_string: ($) =>
       token(
@@ -523,7 +566,7 @@ module.exports = grammar({
     // \n \t \r \\ \" \$ ; \xNN (2 hex digits); \u{...} (1-6 hex digits).
     // A malformed numeric escape is left literal -- handled by falling
     // through to string_content, since this rule simply won't match it.
-    escape_sequence: ($) => /\\([nrt"$\\]|x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]{1,6}\})/,
+    escape_sequence: ($) => token.immediate(prec(1, /\\([nrt"$\\]|x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]{1,6}\})/)),
 
     boolean_literal: ($) => choice("true", "false"),
 
@@ -564,6 +607,11 @@ module.exports = grammar({
 
     spread_field: ($) => seq("...", $.expression, ","),
 
+    // `(expr: Type)` -- an expression with its type written out, e.g.
+    // `([]: List[Int])`.
+    ascription_expression: ($) =>
+      seq("(", $.expression, ":", $._type_expr, ")"),
+
     tuple_expression: ($) =>
       seq(
         "(",
@@ -577,8 +625,9 @@ module.exports = grammar({
     // NOT left-recursive; starts with type_name token directly
     variant_record_expression: ($) =>
       prec.dynamic(-10, prec(PREC.postfix, seq(
-        $.type_name,
+        choice($.type_name, $.qualified_type),
         "{",
+        optional($.spread_field),
         optional(seq($.record_field, repeat(seq(",", $.record_field)))),
         optional(","),
         "}",
@@ -616,6 +665,10 @@ module.exports = grammar({
         $._match_tuple_index,
         $._match_index,
         $._match_range,
+        $._match_unwrap,
+        $._match_to_option,
+        $._match_coalesce,
+        $._match_optional_chain,
         $.primary_expression,
       ),
 
@@ -652,13 +705,27 @@ module.exports = grammar({
       prec.left(PREC.postfix, seq($._match_value, optional($.turbofish), $.argument_list)),
 
     _match_member: ($) =>
-      prec.left(PREC.postfix, seq($._match_value, ".", choice($.identifier, $.predicate_identifier))),
+      prec.left(PREC.postfix, seq($._match_value, ".", choice($.identifier, $.predicate_identifier, $.type_name))),
+
+    _match_unwrap: ($) =>
+      prec.left(PREC.postfix, seq($._match_value, "!")),
+
+    _match_to_option: ($) =>
+      prec.left(PREC.postfix, seq($._match_value, token.immediate("?"))),
+
+    _match_optional_chain: ($) =>
+      prec.left(PREC.postfix, seq($._match_value, "?.", choice($.identifier, $.predicate_identifier))),
+
+    // `match x ?? y {` -- the fallback never takes a `Name { ... }` record,
+    // which would swallow the arms.
+    _match_coalesce: ($) =>
+      prec.left(PREC.postfix, seq($._match_value, "??", $._coalesce_fallback)),
 
     _match_tuple_index: ($) =>
       prec.left(PREC.postfix, seq($._match_value, ".", $.integer_literal)),
 
     _match_index: ($) =>
-      prec.left(PREC.postfix, seq($._match_value, "[", $.expression, "]")),
+      prec.left(PREC.postfix, seq($._match_value, token.immediate("["), $.expression, "]")),
 
     _match_range: ($) =>
       prec.left(PREC.range, seq($._match_value, choice("..<", "..."), $._match_value)),
@@ -693,17 +760,40 @@ module.exports = grammar({
           ),
         ),
         "in",
-        $.expression,
+        // Like a match value: `for x in ITEMS {` must not read `ITEMS { ... }`
+        // as a record.
+        $._match_value,
         $.block_expression,
       ),
 
     _for_binder: ($) => choice($.identifier, "_"),
 
     while_expression: ($) =>
-      seq("while", field("condition", $.expression), $.block_expression),
+      seq("while", field("condition", $._match_value), $.block_expression),
 
+    // The fan heads, as the compiler's parser/fan.rs reads them:
+    //   fan { a, b }  fan.settle { a, b }  fan.any { a, b }  fan.race(n) { a, b }
+    //     -- arms: expressions, separated by `,` or a new line
+    //   fan.bounded(budget) { body }  fan.timeout(deadline) { body }
+    //     -- a block
+    // Any other `fan.name` is a function of the fan module: `fan.map(xs, f)`.
     fan_expression: ($) =>
-      seq("fan", $.block_expression),
+      choice(
+        seq("fan", $.fan_arms),
+        seq("fan", ".", field("head", choice("settle", "any")), $.fan_arms),
+        seq("fan", ".", field("head", "race"), optional($.argument_list), $.fan_arms),
+        seq("fan", ".", field("head", choice("bounded", "timeout")), $.argument_list, $.block_expression),
+      ),
+
+    // Arms separated by `,`; arms on lines of their own read as a block's
+    // expression statements, which is what they are to a reader.
+    fan_arms: ($) =>
+      choice(
+        seq("{", $.expression, repeat1(seq(",", $.expression)), optional(","), "}"),
+        $.block_expression,
+      ),
+
+    fan_member: ($) => seq("fan", ".", $.identifier),
 
     lambda_expression: ($) =>
       prec.right(1, seq(
@@ -717,7 +807,11 @@ module.exports = grammar({
       )),
 
     lambda_param: ($) =>
-      choice(seq($.identifier, ":", $._type_expr), $.identifier, "_"),
+      choice(seq($.identifier, ":", $._type_expr), $.identifier, "_", $.tuple_param),
+
+    // `((k, v)) => ...` takes a pair apart.
+    tuple_param: ($) =>
+      seq("(", $.lambda_param, repeat1(seq(",", $.lambda_param)), ")"),
 
     // call_expression: left-recursive via $.expression
     call_expression: ($) =>
@@ -731,12 +825,12 @@ module.exports = grammar({
       ),
 
     turbofish: ($) =>
-      seq("[", seq($._type_expr, repeat(seq(",", $._type_expr))), "]"),
+      seq(token.immediate("["), seq($._type_expr, repeat(seq(",", $._type_expr))), "]"),
 
     argument_list: ($) =>
       seq(
         "(",
-        optional(seq($.argument, repeat(seq(",", $.argument)))),
+        optional(seq($.argument, repeat(seq(",", $.argument)), optional(","))),
         ")",
       ),
 
@@ -751,7 +845,7 @@ module.exports = grammar({
         seq(
           $.expression,
           ".",
-          choice($.identifier, $.predicate_identifier),
+          choice($.identifier, $.predicate_identifier, $.type_name),
         ),
       ),
 
@@ -763,7 +857,7 @@ module.exports = grammar({
     index_expression: ($) =>
       prec.left(
         PREC.postfix,
-        seq($.expression, "[", $.expression, "]"),
+        seq($.expression, token.immediate("["), $.expression, "]"),
       ),
 
     binary_expression: ($) =>
@@ -839,7 +933,7 @@ module.exports = grammar({
       prec.dynamic(1, prec.left(PREC.postfix, seq($._pipe_rhs, ".", $.integer_literal))),
 
     _pipe_index: ($) =>
-      prec.dynamic(1, prec.left(PREC.postfix, seq($._pipe_rhs, "[", $.expression, "]"))),
+      prec.dynamic(1, prec.left(PREC.postfix, seq($._pipe_rhs, token.immediate("["), $.expression, "]"))),
 
     _pipe_unwrap: ($) =>
       prec.dynamic(1, prec.left(PREC.postfix, seq($._pipe_rhs, "!"))),
@@ -873,7 +967,7 @@ module.exports = grammar({
     // expr ?? fallback — unwrap with default; the fallback binds at unary
     // level, so `x ?? 0 + 1` parses as `(x ?? 0) + 1` (compiler behavior).
     unwrap_or_expression: ($) =>
-      prec.left(PREC.postfix, seq($.expression, "??", $._coalesce_fallback)),
+      prec.left(PREC.postfix, seq($.expression, "??", choice($._coalesce_fallback, $.variant_record_expression))),
 
     // Closed chain: the fallback is a single unary-level expression.
     _coalesce_fallback: ($) =>
@@ -902,9 +996,12 @@ module.exports = grammar({
         "if",
         field("condition", $.expression),
         "then",
-        field("consequence", $.expression),
-        optional(seq("else", field("alternative", $.expression))),
+        field("consequence", $._if_branch),
+        optional(seq("else", field("alternative", $._if_branch))),
       )),
+
+    // A branch may be an assignment, as in the compiler: `if c then x = 1 else ()`.
+    _if_branch: ($) => choice($.expression, $.assignment_statement),
 
     some_expression: ($) => seq("some", "(", $.expression, ")"),
 

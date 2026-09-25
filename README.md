@@ -21,12 +21,21 @@ compiler (see `test/corpus/precedence.txt`). The executable truth upstream is
   (incl. convention methods `fn Type.method`, `mut` / default parameters),
   types (records with field defaults, variants, conventions clause
   `type Name: Eq, Repr`), protocols, tests, `strict`
-- Attributes: `@extern(...)`, `@intrinsic("...")`, `@name(args)`
-- Effect system (`effect fn`), `guard` / `guard let`, `fan`
+- Attributes: `@extern(...)`, `@intrinsic("...")`, `@name(args)`, named
+  arguments `@deprecated(since=3, use="??")`
+- Effect system (`effect fn`), `guard` / `guard let`, `fan { a, b }` and the
+  `fan.settle` / `fan.any` / `fan.race(n)` / `fan.bounded(b)` /
+  `fan.timeout(d)` heads
 - Pattern matching with guards, list patterns, negative literals, record rest
 - Pipe (`|>`, incl. `x |> match { ... }`), compose (`>>`), postfix
   `!` `?` `?.` `??`
-- Generic types with `[]` syntax; function types `fn(A) -> B` / `(A) -> B`
+- Generic types with `[]` syntax; function types `fn(A) -> B` / `(A) -> B`,
+  `effect (A) -> B`; `T?` for Option (ADR-0010); fallible returns `-> T!`
+  and `-> T!E`; module-qualified types `core.Usage`; `(T?)?`
+- Module-qualified records, cases and constants in expressions:
+  `live.Request { ... }`, `core.FinishStop`, `ask.MODEL_WORK`
+- Assignments as `if` branches, `(expr: Type)` ascription, `((k, v)) =>`
+  lambda parameters, trailing commas in calls
 - String interpolation, single-quote strings, heredocs, raw strings
 - Comments: `//` and `/* ... */`
 
@@ -49,6 +58,10 @@ single source of truth for Almide syntax.
 > far behind the hand-maintained grammar, so it was removed; `grammar.js` is
 > the maintained source for now. Restoring an at-parity Almide generator is
 > tracked in the issues.
+
+Checked against real code as well as the corpus: every `.almd` file in the
+compiler's `stdlib/` and `examples/`, and in almai, comide, golemide, gramide
+and hew, parses with no `ERROR` node.
 
 ## File type
 
