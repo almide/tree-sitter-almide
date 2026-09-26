@@ -496,6 +496,7 @@ module.exports = grammar({
         $.record_expression,
         $.tuple_expression,
         $.if_expression,
+        $.if_let_expression,
         $.block_expression,
         $.for_in_expression,
         $.while_expression,
@@ -991,6 +992,11 @@ module.exports = grammar({
       prec.left(PREC.postfix, seq($.expression, "?.", choice($.identifier, $.predicate_identifier))),
 
     // else is optional: `if c then a` evaluates to Unit when c is false
+    // `if let name = value { then } else { otherwise }` -- unwraps a some/ok.
+    if_let_expression: ($) =>
+      seq("if", "let", field("name", $.identifier), "=", field("value", $._match_value),
+        field("consequence", $.block_expression), "else", field("alternative", $.block_expression)),
+
     if_expression: ($) =>
       prec.right(seq(
         "if",
@@ -1075,7 +1081,9 @@ module.exports = grammar({
 
     identifier_pattern: ($) => prec(1, $.identifier),
 
-    type_name_pattern: ($) => prec(1, $.type_name),
+    // A case may be module-qualified, as the compiler's patterns.rs reads it:
+    // `core.FinishStop`, `core.ErrConfig(m)`, `mod.Case { a, .. }`.
+    type_name_pattern: ($) => prec(1, choice($.type_name, $.qualified_type)),
 
     literal_pattern: ($) =>
       prec(1, choice(
@@ -1096,7 +1104,7 @@ module.exports = grammar({
 
     constructor_pattern: ($) =>
       prec(1, seq(
-        $.type_name,
+        choice($.type_name, $.qualified_type),
         "(",
         optional(seq($.pattern, repeat(seq(",", $.pattern)))),
         ")",
@@ -1105,7 +1113,7 @@ module.exports = grammar({
     // Match { scope, regex } or Match { scope, .. } or Match { .. }
     variant_record_pattern: ($) =>
       prec(1, seq(
-        $.type_name,
+        choice($.type_name, $.qualified_type),
         "{",
         choice(
           seq(
